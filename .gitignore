@@ -1,6 +1,27 @@
+# Environment and local secrets
 .env
+.env.*
+!.env.example
 .venv/
+
+# Python
 __pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tests and static analysis
+.coverage
+coverage.xml
+htmlcov/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local databases and editors
+*.db
+*.sqlite3
 .idea/
 .vscode/
+.DS_Store
