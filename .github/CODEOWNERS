@@ -1,0 +1,14 @@
+# Replace the commented placeholders after members 1 and 2 share their GitHub usernames.
+# /app/api/ @member-1
+# /app/schemas/ @member-1
+# /app/application/ @member-2
+# /app/domain/ @member-2
+
+# Member 3 / repository owner
+/app/infrastructure/ @NhHung07
+/alembic/ @NhHung07
+/load_tests/ @NhHung07
+/Dockerfile @NhHung07
+/docker-compose.yml @NhHung07
+/docs/database.md @NhHung07
+/docs/benchmark.md @NhHung07
