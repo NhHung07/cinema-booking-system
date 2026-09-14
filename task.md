@@ -30,6 +30,12 @@ Stack đề xuất:
 - Locust
 - Redis (chỉ xem xét ở Pha 2 nếu benchmark cho thấy cần)
 
+Quy ước sử dụng tài liệu này:
+
+- Đây là nguồn theo dõi phạm vi và Definition of Done chung của nhóm.
+- Mỗi checkbox chỉ được đánh dấu hoàn thành sau khi có code hoặc tài liệu tương ứng và đã được kiểm tra.
+- Công việc hằng ngày được tách thành GitHub Issues; không dùng một branch dài hạn cho từng thành viên.
+
 ---
 
 # 2. Quy ước phân công
@@ -40,6 +46,18 @@ Stack đề xuất:
 - Các phần kiến trúc, integration, review, benchmark và Pha 2: cả nhóm cùng tham gia
 - Không chia code hoàn toàn độc lập theo kiểu “ai làm phần người đó và không biết phần còn lại”
 - Mỗi thành viên là primary owner của phần mình phụ trách nhưng phải review code chéo
+
+### Ranh giới ownership
+
+| Khu vực | Primary owner | Điểm tích hợp bắt buộc |
+|---|---|---|
+| `app/api/`, `app/schemas/`, `app/core/security.py` | Thành viên 1 | Dùng service và dependency đã thống nhất |
+| `app/application/`, `app/domain/` | Thành viên 2 | Repository interface không import SQLAlchemy |
+| `app/infrastructure/`, `alembic/`, Docker, `load_tests/` | Thành viên 3 | Implement đúng interface của Thành viên 2 |
+| `app/core/config.py`, `.env.example` | Thành viên 3 primary; cả nhóm review | Là contract cấu hình dùng chung, không được định nghĩa lại ở layer khác |
+| Tests tích hợp, tài liệu, benchmark | Cả nhóm | Có ít nhất một reviewer ngoài tác giả |
+
+Thay đổi vào API contract, domain contract, database schema hoặc environment contract phải được ghi trong Issue và review trước khi merge.
 
 ---
 
@@ -320,17 +338,17 @@ Phụ trách toàn bộ phần persistence, infrastructure, container và load t
 
 - [ ] Thiết kế database schema
 - [ ] Cấu hình PostgreSQL
-- [ ] Cấu hình SQLAlchemy
+- [x] Tạo cấu hình SQLAlchemy engine/session nền tảng
 - [ ] Tạo SQLAlchemy models
-- [ ] Tạo database session
+- [x] Tạo database session lifecycle
 - [ ] Implement repository interfaces
-- [ ] Cấu hình Alembic
+- [x] Khởi tạo cấu trúc Alembic và kết nối metadata
 - [ ] Viết migration
 - [ ] Tạo seed data nếu cần
 - [ ] Tạo Dockerfile
 - [ ] Tạo docker-compose.yml
-- [ ] Cấu hình environment variables
-- [ ] Tạo `.env.example`
+- [x] Chốt contract environment variables
+- [x] Tạo `.env.example`
 - [ ] Viết Locust load test
 - [ ] Chuẩn bị benchmark script
 - [ ] Hỗ trợ chạy benchmark trên Kaggle CPU
@@ -372,9 +390,9 @@ Cần cân nhắc:
 
 ## 5.4. SQLAlchemy
 
-- [ ] Cấu hình engine
-- [ ] Cấu hình session
-- [ ] Declarative base
+- [x] Cấu hình engine
+- [x] Cấu hình session
+- [x] Declarative base
 - [ ] User model
 - [ ] Movie model
 - [ ] Showtime model
@@ -383,6 +401,13 @@ Cần cân nhắc:
 - [ ] BookingSeat model
 - [ ] Relationship
 - [ ] Repository implementation
+
+Quyết định kỹ thuật:
+
+- Dùng SQLAlchemy synchronous API và Psycopg 3 trong Pha 1 để giữ scope đơn giản.
+- `app/infrastructure/database/session.py` tạo engine và session factory.
+- Không tạo thêm database config module hoặc đọc `DATABASE_URL` trực tiếp ở repository.
+- Unit test business logic dùng fake/mock repository và không cần database thật.
 
 Ví dụ dependency:
 
@@ -402,8 +427,8 @@ PostgreSQL
 
 ## 5.5. Alembic
 
-- [ ] Init Alembic
-- [ ] Kết nối metadata
+- [x] Init Alembic
+- [x] Kết nối metadata
 - [ ] Migration tạo users
 - [ ] Migration tạo movies
 - [ ] Migration tạo showtimes
@@ -533,6 +558,28 @@ Checklist:
 - [ ] SQLAlchemy model không chạy xuyên toàn bộ project
 - [ ] Dependency direction đúng
 
+### Configuration decision
+
+Config được quản lý theo một chiều duy nhất:
+
+```text
+.env / environment variables
+          ↓
+app/core/config.py (Pydantic Settings)
+          ↓
+app/infrastructure/database/session.py
+          ↓
+SQLAlchemy engine / session factory
+```
+
+Quy tắc:
+
+- `app/core/config.py` là nguồn đọc environment variables duy nhất.
+- Infrastructure và API nhận config thông qua `get_settings()`; không tự gọi `os.getenv()` rải rác.
+- Không có `app/infrastructure/database/config.py` vì sẽ lặp trách nhiệm và `DATABASE_URL`.
+- Secret thật chỉ nằm trong environment hoặc `.env` cục bộ; repository chỉ commit `.env.example`.
+- Docker Compose phải override `DATABASE_URL` với hostname của database service.
+
 ---
 
 ## 6.3. Integration
@@ -594,33 +641,39 @@ feature/*
 - [ ] Review trước khi merge
 - [ ] Merge xong thì xóa feature branch
 - [ ] Chỉ merge `develop → main` khi đạt milestone ổn định
+- [ ] Không tạo branch dài hạn theo tên thành viên
+- [ ] Mỗi branch gắn với một GitHub Issue
+- [ ] Dùng Squash and merge để giữ lịch sử dễ đọc
+- [ ] Không force-push hoặc xóa `main`/`develop`
 
 ---
 
 ## Branch naming
 
 ```text
-feature/auth
-feature/movie-api
-feature/showtime-api
-feature/booking-service
-feature/database
-feature/repository
-feature/docker
-feature/load-test
+feature/12-auth
+feature/18-movie-api
+feature/21-showtime-api
+feature/27-booking-service
+feature/31-database-models
+feature/34-repository-adapters
+feature/38-docker
+feature/42-load-test
 
-fix/duplicate-booking
-fix/jwt-expiration
+fix/46-duplicate-booking
+fix/49-jwt-expiration
 
-test/booking-service
-test/api-integration
+test/52-booking-service
+test/55-api-integration
 
-docs/architecture
-docs/readme
+docs/58-architecture
+docs/61-readme
 
-perf/redis-cache
-perf/database-index
+perf/70-redis-cache
+perf/73-database-index
 ```
+
+Format chung: `<type>/<issue-number>-<short-description>`.
 
 ---
 
@@ -651,13 +704,32 @@ perf: add database index for showtime query
 chore: add docker compose configuration
 ```
 
+Commit hiện tại dùng imperative, ngắn gọn, không đưa nguyên câu lệnh `git commit` vào message. Một commit chỉ nên chứa một thay đổi logic có thể review.
+
+## GitHub Issues, Project và Pull Requests
+
+- GitHub Project dùng các cột: `Backlog → Todo → In Progress → Review → Done`.
+- Mỗi Issue có assignee, acceptance criteria, area label và milestone.
+- Labels tối thiểu: `area:api`, `area:domain`, `area:infrastructure`, `type:feature`, `type:bug`, `type:test`, `type:docs`, `phase:1`, `phase:2`.
+- Pull Request phải link Issue bằng `Closes #<number>` khi phù hợp.
+- Pull Request vào `develop` cần ít nhất 1 approval, CI pass và mọi conversation được resolve.
+- Pull Request `develop → main` chỉ tạo khi hoàn thành milestone và đã chạy lại integration test/Docker.
+- `main` và `develop` phải bật ruleset chặn direct push, force push và branch deletion.
+
 ---
 
 # 8. Cấu trúc thư mục mục tiêu
 
 ```text
-cinema-booking/
+cinema-booking-system/
+├── .github/
+│   ├── CODEOWNERS
+│   ├── pull_request_template.md
+│   ├── ISSUE_TEMPLATE/
+│   └── workflows/
+│       └── ci.yml
 ├── app/
+│   ├── __init__.py
 │   ├── api/
 │   │   ├── routes/
 │   │   └── dependencies/
@@ -669,21 +741,35 @@ cinema-booking/
 │   │   └── exceptions/
 │   ├── infrastructure/
 │   │   ├── database/
+│   │   │   ├── base.py
+│   │   │   └── session.py
 │   │   ├── models/
 │   │   └── repositories/
 │   ├── schemas/
 │   ├── core/
+│   │   ├── config.py
+│   │   └── security.py
 │   └── main.py
 ├── tests/
+│   ├── conftest.py
 │   ├── unit/
 │   └── integration/
 ├── alembic/
+│   ├── versions/
+│   ├── env.py
+│   └── script.py.mako
 ├── load_tests/
 ├── docs/
+│   ├── architecture.md
+│   ├── database.md
+│   ├── benchmark.md
+│   └── phase2.md
 ├── Dockerfile
 ├── docker-compose.yml
+├── alembic.ini
 ├── requirements.txt
 ├── .env.example
+├── .gitattributes
 ├── .gitignore
 └── README.md
 ```
@@ -1013,12 +1099,12 @@ docs/
 
 ## Milestone 0 — Project Setup
 
-- [ ] Repository tạo xong
-- [ ] `main`
-- [ ] `develop`
-- [ ] Folder structure
-- [ ] requirements
-- [ ] README skeleton
+- [x] Repository tạo xong
+- [x] `main`
+- [x] `develop`
+- [x] Folder/package structure
+- [x] `requirements.txt`
+- [x] README skeleton
 - [ ] FastAPI hello endpoint
 
 ---
@@ -1107,7 +1193,8 @@ docs/
 8. Mỗi PR phải được review.
 9. Benchmark Pha 1 phải được lưu để làm baseline.
 10. Pha 2 phải có số liệu Before vs After trên cùng cấu hình phần cứng.
-11. Mọi architecture decision phải giải thích được:
+11. Không đọc environment variables rải rác ngoài `app/core/config.py`.
+12. Mọi architecture decision phải giải thích được:
     - Vấn đề là gì?
     - Vì sao chọn giải pháp này?
     - Nó cải thiện quality attribute nào?
