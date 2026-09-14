@@ -1,0 +1,4 @@
+Alembic migrations for the Cinema Booking System.
+
+Create a migration only after all SQLAlchemy models and constraints for the
+change have been reviewed. Never edit an applied migration; add a new one.
