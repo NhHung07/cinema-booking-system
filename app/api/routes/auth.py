@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.dependencies import get_auth_service
+from app.api.dependencies import get_auth_service, CurrentUser 
 from app.application.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from app.application.services.auth_service import AuthService
 
@@ -30,3 +30,12 @@ def login(
 ) -> TokenResponse:
     token = service.login(request.email, request.password)
     return TokenResponse(access_token=token)
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get the current authenticated user",
+    responses={401: {"description": "Missing or invalid Bearer token"}},
+)
+def get_me(current_user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(current_user)
