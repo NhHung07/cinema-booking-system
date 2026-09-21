@@ -55,6 +55,58 @@ def test_booking_conflict_and_cancellation_releases_seat(client: TestClient, cat
     assert replacement.status_code == 201, replacement.text
 
 
+def test_register_duplicate_email_returns_conflict(client: TestClient) -> None:
+    _register_and_login(client, "dup@example.com")
+
+    response = client.post(
+        "/auth/register",
+        json={"email": "dup@example.com", "password": "password123", "full_name": "Another Name"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_login_with_wrong_password_returns_unauthorized(client: TestClient) -> None:
+    _register_and_login(client, "wrongpass@example.com")
+
+    response = client.post("/auth/login", json={"email": "wrongpass@example.com", "password": "not-the-password"})
+
+    assert response.status_code == 401
+
+
+def test_protected_endpoint_rejects_malformed_or_missing_token(client: TestClient) -> None:
+    assert client.get("/auth/me").status_code == 401
+    assert client.get("/auth/me", headers={"Authorization": "Bearer not-a-real-token"}).status_code == 401
+    assert client.get("/auth/me", headers={"Authorization": "NotBearer xyz"}).status_code == 401
+
+
+def test_get_me_returns_the_authenticated_user(client: TestClient) -> None:
+    headers = _register_and_login(client, "me@example.com")
+
+    response = client.get("/auth/me", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "me@example.com"
+
+
+def test_user_cannot_access_another_users_booking(client: TestClient, catalog: dict[str, int]) -> None:
+    owner_headers = _register_and_login(client, "owner@example.com")
+    other_headers = _register_and_login(client, "other@example.com")
+    created = client.post(
+        "/bookings",
+        json={"showtime_id": catalog["showtime_id"], "seat_ids": [catalog["seat_1"]]},
+        headers=owner_headers,
+    )
+    assert created.status_code == 201, created.text
+    booking_id = created.json()["id"]
+
+    read_by_other = client.get(f"/bookings/{booking_id}", headers=other_headers)
+    cancel_by_other = client.delete(f"/bookings/{booking_id}", headers=other_headers)
+
+    assert read_by_other.status_code == 403
+    assert cancel_by_other.status_code == 403
+
+
 def test_cors_allows_the_vite_development_origin(client: TestClient) -> None:
     response = client.options(
         "/bookings",
