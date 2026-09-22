@@ -206,7 +206,7 @@ def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) ->
     if not outcome_path.exists():
         raise RuntimeError(f"Thiếu concurrent outcome: {outcome_path}")
     outcome = json.loads(outcome_path.read_text(encoding="utf-8"))
-    expected_conflicts = max(int(result["users"]) - 1, 0)
+    minimum_conflicts = 0 if int(result["users"]) == 1 else 1
     session_factory = create_session_factory(config.database_url)
     metadata = read_dataset(config.dataset_file)
     with session_factory() as session:
@@ -214,7 +214,7 @@ def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) ->
     result["database_allocation_count"] = allocation_count
     correct = (
         int(outcome.get("created", 0)) == 1
-        and int(outcome.get("expected_conflict", 0)) == expected_conflicts
+        and int(outcome.get("expected_conflict", 0)) >= minimum_conflicts
         and int(outcome.get("unexpected_failure", 0)) == 0
         and allocation_count == 1
     )
@@ -222,7 +222,7 @@ def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) ->
         raise AssertionError(
             "Concurrent correctness failed: "
             f"outcome={outcome}, database_allocation_count={allocation_count}, "
-            f"expected_conflicts={expected_conflicts}"
+            f"minimum_conflicts={minimum_conflicts}"
         )
 
 

@@ -54,7 +54,7 @@ def test_aggregation_emits_run_and_summary_statistics(tmp_path: Path) -> None:
         ],
     )
     outcomes.write_text(
-        json.dumps({"created": 1, "expected_conflict": 1, "unexpected_failure": 0}),
+        json.dumps({"created": 1, "expected_conflict": 2, "unexpected_failure": 0}),
         encoding="utf-8",
     )
     manifest = tmp_path / "manifest.json"
@@ -85,6 +85,7 @@ def test_aggregation_emits_run_and_summary_statistics(tmp_path: Path) -> None:
         summary = next(csv.DictReader(handle))
     assert float(run["p95_ms"]) == 30
     assert float(run["system_cpu_percent_avg"]) == 30
+    assert int(run["expected_conflict_count"]) == 2
     assert run["concurrency_correct"] == "True"
     assert float(summary["requests_per_second_mean"]) == 10
     assert float(summary["p99_ms_mean"]) == 40

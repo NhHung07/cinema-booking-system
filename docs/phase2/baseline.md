@@ -23,7 +23,7 @@ Mỗi lần chạy tự sinh `environment.json` gồm Python version, CPU model,
 
 - Scenario A — Catalogue Browsing: read-heavy mix 50% movies, 30% showtimes theo movie và 20% seat availability.
 - Scenario B — Normal Booking Flow: login thật để nhận JWT, browse catalogue, đọc seat list và book một seat hợp lệ riêng cho từng virtual user. Dataset được reset trước mỗi measured run.
-- Scenario C — Concurrent Seat Booking: nhiều account cùng tranh một seat. Đúng khi đúng một `201`, các attempt còn lại là expected `409`, và unique `(showtime_id, seat_id)` trong database có đúng một row.
+- Scenario C — Concurrent Seat Booking: nhiều account cùng tranh một seat. Đúng khi đúng một `201`, có expected `409` khi load lớn hơn 1, không có booking response ngoài dự kiến, và unique `(showtime_id, seat_id)` trong database có đúng một row. Vì Locust có thể spawn user thay thế sau `StopUser`, số attempt/`409` có thể lớn hơn `users - 1`; `users` biểu diễn concurrency chứ không phải tổng số request.
 
 ## Load configuration
 

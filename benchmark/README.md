@@ -14,7 +14,7 @@ Ba scenario được chạy độc lập:
 
 - `catalogue`: request mix 50% `GET /movies`, 30% `GET /showtimes?movie_id=...`, 20% `GET /showtimes/{id}/seats`.
 - `booking`: mỗi virtual user login qua `POST /auth/login`, browse movies/showtimes/seats và tạo một booking trên seat riêng. Sau booking, user tiếp tục read flow và kiểm tra booking để giữ load ổn định; token không được hard-code.
-- `concurrent`: mọi virtual user dùng account riêng nhưng cùng đặt một `(showtime_id, seat_id)`. Đúng khi có đúng một `201`, còn lại là `409`, không có response ngoài dự kiến và database chỉ có một allocation. `409` được ghi là expected business outcome, không tính là technical failure.
+- `concurrent`: mọi virtual user dùng account riêng nhưng cùng đặt một `(showtime_id, seat_id)`. Đúng khi có đúng một `201`, có cạnh tranh thực sự với `409` ở load lớn hơn 1, không có booking response ngoài dự kiến và database chỉ có một allocation. `409` được ghi là expected business outcome, không tính là technical failure. Locust có thể spawn user thay thế sau `StopUser`, nên số attempt/`409` có thể lớn hơn `users - 1`; `users` là mức concurrency, không phải tổng số request.
 
 Dataset mặc định cố định với random seed `42`: 220 users, 12 movies, 36 showtimes, 3 rooms, 60 physical seats (20/room), 720 showtime-seat slots. ID thật sau seed được ghi vào `benchmark/.state/dataset.json`; workload không giả định ID bắt đầu từ 1. Reset chỉ xóa record mang namespace `bench-user-*`, `BENCH_MOVIE_*`, `BENCH_ROOM_*`.
 

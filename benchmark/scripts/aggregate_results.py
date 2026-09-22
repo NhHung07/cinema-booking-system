@@ -105,9 +105,10 @@ def build_run_row(run: dict[str, Any]) -> dict[str, object]:
     row["expected_conflict_count"] = outcome.get("expected_conflict", 0)
     row["unexpected_failure_count"] = outcome.get("unexpected_failure", 0)
     if run["scenario"] == "concurrent":
+        minimum_conflicts = 0 if int(run["users"]) == 1 else 1
         row["concurrency_correct"] = (
             row["created_count"] == 1
-            and row["expected_conflict_count"] == max(int(run["users"]) - 1, 0)
+            and row["expected_conflict_count"] >= minimum_conflicts
             and row["unexpected_failure_count"] == 0
             and int(run.get("database_allocation_count", -1)) == 1
         )
