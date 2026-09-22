@@ -9,3 +9,7 @@ dist/
 build/
 *.egg-info/
 .frontend-smoke.db
+benchmark/.state/
+benchmark/.ipynb_checkpoints/
+benchmark/results/*
+!benchmark/results/.gitkeep

@@ -106,15 +106,15 @@ pytest
 
 Unit test dùng fake repository và không tạo database. Integration test dùng FastAPI test client cùng isolated in-memory SQLite database để chạy được không cần Docker. Production sử dụng PostgreSQL; Alembic migration là schema source of truth.
 
-## Load test
+## Phase 1 performance baseline
 
-Sau khi service chạy và có seed data:
+Infrastructure benchmark reproducible gồm catalogue browsing, normal booking và concurrent same-seat booking nằm trong [`benchmark/`](benchmark/README.md). Sau khi PostgreSQL đã migrate và API chạy với một worker:
 
 ```bash
-locust -f locust/locustfile.py --host http://localhost:8000
+python benchmark/scripts/run_benchmark.py
 ```
 
-Phase 1 scenario gọi `GET /movies`, `GET /showtimes`, và `GET /showtimes/{id}/seats`.
+Notebook Kaggle CPU, cách seed/reset dataset, tham số và cách đọc kết quả được mô tả trong [benchmark README](benchmark/README.md). Baseline này không thay đổi business logic hay tối ưu Phase 1.
 
 ## Frontend MVP
 
