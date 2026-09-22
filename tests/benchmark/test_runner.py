@@ -87,6 +87,33 @@ def test_concurrent_validator_accepts_replacement_user_conflicts(
     monkeypatch.setattr(run_benchmark, "concurrent_allocation_count", lambda _session, _data: 1)
     result = {"users": 25, "outcome_json": str(outcome_path)}
 
-    verify_concurrent_result(_config(tmp_path), result)
+    assert verify_concurrent_result(_config(tmp_path), result) is True
 
     assert result["database_allocation_count"] == 1
+    assert result["concurrency_correct"] is True
+
+
+def test_concurrent_validator_records_business_failure_without_aborting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    outcome_path = tmp_path / "outcomes.json"
+    outcome_path.write_text(
+        json.dumps({"created": 1, "expected_conflict": 8, "unexpected_failure": 1}),
+        encoding="utf-8",
+    )
+
+    class FakeSession:
+        def __enter__(self) -> "FakeSession":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+    monkeypatch.setattr(run_benchmark, "create_session_factory", lambda _url: FakeSession)
+    monkeypatch.setattr(run_benchmark, "read_dataset", lambda _path: {})
+    monkeypatch.setattr(run_benchmark, "concurrent_allocation_count", lambda _session, _data: 1)
+    result = {"users": 10, "outcome_json": str(outcome_path)}
+
+    assert verify_concurrent_result(_config(tmp_path), result) is False
+    assert result["concurrency_correct"] is False
+    assert "unexpected_failure" in result["concurrency_error"]

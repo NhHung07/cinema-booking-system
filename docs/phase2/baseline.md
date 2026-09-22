@@ -33,7 +33,7 @@ Mặc định chạy `1, 10, 25, 50, 100` concurrent users; `spawn rate=10 users
 
 Locust ghi total requests, requests/sec, average, P50, P95, P99, max latency, failure count và failure rate. `psutil` sampling mỗi giây ghi system CPU/RAM và, khi có `BENCH_SERVER_PID`, app CPU/RSS. Aggregation báo mean, median và standard deviation qua repetitions. Expected `409` của Scenario C được tách khỏi technical failure.
 
-HTTP 5xx, timeout và connection error trong measured run là dữ liệu baseline hợp lệ: chúng được giữ trong failure metrics và không làm runner bỏ dở các load level còn lại. Runner vẫn dừng khi Locust/tooling lỗi, thiếu artifact CSV hoặc concurrent correctness không đạt.
+HTTP 5xx, timeout, connection error và vi phạm concurrent correctness trong measured run là dữ liệu baseline hợp lệ: chúng được giữ trong failure metrics hoặc `concurrency_correct=false` và không làm runner bỏ dở các load level còn lại. Runner chỉ dừng khi Locust/tooling lỗi, thiếu artifact CSV/outcome hoặc không thể kiểm tra database.
 
 ## Running on Kaggle
 

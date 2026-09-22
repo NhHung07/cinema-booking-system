@@ -201,7 +201,7 @@ def run_locust(
     return result
 
 
-def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) -> None:
+def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) -> bool:
     outcome_path = Path(result["outcome_json"])
     if not outcome_path.exists():
         raise RuntimeError(f"Thiếu concurrent outcome: {outcome_path}")
@@ -218,12 +218,15 @@ def verify_concurrent_result(config: BenchmarkConfig, result: dict[str, Any]) ->
         and int(outcome.get("unexpected_failure", 0)) == 0
         and allocation_count == 1
     )
+    result["concurrency_correct"] = correct
     if not correct:
-        raise AssertionError(
+        result["concurrency_error"] = (
             "Concurrent correctness failed: "
             f"outcome={outcome}, database_allocation_count={allocation_count}, "
             f"minimum_conflicts={minimum_conflicts}"
         )
+        print(result["concurrency_error"], file=sys.stderr)
+    return correct
 
 
 def execute(config: BenchmarkConfig, *, skip_warmup: bool = False) -> Path:
