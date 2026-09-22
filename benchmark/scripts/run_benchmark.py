@@ -112,7 +112,7 @@ def _locust_command(
         "--csv-full-history",
         "--only-summary",
         "--exit-code-on-error",
-        "1",
+        "0",
         SCENARIO_CLASSES[scenario],
     ]
 
@@ -180,12 +180,20 @@ def run_locust(
     if completed.returncode != 0:
         raise RuntimeError(f"Locust thất bại (exit={completed.returncode}); xem {log_path}")
 
+    stats_path = prefix.with_name(f"{prefix.name}_stats.csv")
+    history_path = prefix.with_name(f"{prefix.name}_stats_history.csv")
+    if not stats_path.exists() or not history_path.exists():
+        raise RuntimeError(
+            "Locust không tạo đủ artifact CSV; "
+            f"stats={stats_path.exists()}, history={history_path.exists()}; xem {log_path}"
+        )
+
     result: dict[str, Any] = {
         "scenario": scenario,
         "users": users,
         "repetition": repetition,
-        "stats_csv": str(prefix.with_name(f"{prefix.name}_stats.csv").resolve()),
-        "history_csv": str(prefix.with_name(f"{prefix.name}_stats_history.csv").resolve()),
+        "stats_csv": str(stats_path.resolve()),
+        "history_csv": str(history_path.resolve()),
         "metrics_csv": str(metrics_path.resolve()),
         "outcome_json": str(outcome_path.resolve()) if scenario == "concurrent" else None,
         "log": str(log_path.resolve()),

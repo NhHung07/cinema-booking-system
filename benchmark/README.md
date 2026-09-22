@@ -39,6 +39,8 @@ python benchmark/scripts/run_benchmark.py
 
 Runner tự kiểm tra `/health`, warm-up, reset/seed trước từng measured run, chạy Locust headless, thu metric, kiểm tra same-seat correctness, aggregate và vẽ graph. Có thể chạy nhanh để kiểm tra tooling:
 
+Technical failure của request (HTTP 5xx, timeout, connection error) vẫn được Locust ghi vào `failure count`/`failure rate` nhưng không làm dừng toàn bộ ma trận load. Runner chỉ dừng khi Locust/tooling không chạy được hoặc không tạo đủ artifact CSV. Riêng scenario `concurrent` vẫn fail-fast nếu correctness không đạt.
+
 ```powershell
 python benchmark/scripts/run_benchmark.py --scenarios catalogue --loads 1,10 --duration 15s --warmup-duration 5s --repetitions 1
 ```
