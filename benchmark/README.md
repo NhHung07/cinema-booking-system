@@ -80,11 +80,13 @@ Các flag `--scenarios`, `--loads`, `--spawn-rate`, `--duration`, `--warmup-dura
 3. Chạy lần lượt Section 1 đến Section 6. Section 4 cài/khởi động PostgreSQL, migrate và seed; bất kỳ lỗi nào phải dừng notebook.
 4. Chạy Section 7. Đây là Locust headless; không cần mở Web UI. Bộ mặc định gồm 45 measured runs nên có thể mất nhiều thời gian.
 5. Section 9 hiển thị bảng tổng hợp thật, Section 10 hiển thị năm graph.
-6. Download toàn bộ thư mục được in bởi runner dưới `benchmark/results/<timestamp>/` làm artifact của Phase 1.
+6. Mở tab **Output** và download toàn bộ thư mục `phase1-results/` làm artifact của Phase 1. Notebook đặt `BENCH_OUTPUT_DIR=/kaggle/working/phase1-results` để output có đường dẫn ổn định.
 
 Không chuyển ngầm sang SQLite nếu PostgreSQL không khởi động. Hãy lưu log lỗi PostgreSQL và coi run đó chưa tạo được baseline.
 
 ## Kết quả và cách đọc
+
+Baseline chính thức hiện tại là [Kaggle Version 4](https://www.kaggle.com/code/nhhung07/kaggle-phase1-benchmark?scriptVersionId=351931925), chạy từ commit `e2328fc`, hoàn thành 45 measured runs trong `49m 58s`. Bảng số liệu và phân tích nằm trong [`docs/phase2/baseline.md`](../docs/phase2/baseline.md). Generated output đầy đủ vẫn nằm trong tab **Output** của notebook và không được commit vào Git.
 
 Mỗi run có `locust_stats.csv`, `locust_stats_history.csv`, `system-metrics.csv`, `locust.log`; concurrent run có thêm `concurrent-outcomes.json`. Root result có:
 
