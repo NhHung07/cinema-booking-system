@@ -1,3 +1,5 @@
+from datetime import timezone
+from datetime import datetime
 from app.core.exceptions import (
     BookingNotFoundError,
     InvalidBookingError,
@@ -13,19 +15,24 @@ from app.domain.repositories.unit_of_work import UnitOfWork
 class BookingService:
     def __init__(self, unit_of_work: UnitOfWork) -> None:
         self._unit_of_work = unit_of_work
-
+    # Quy trinh dat ve, giu ghe
     def create_booking(self, user_id: int, showtime_id: int, seat_ids: list[int]) -> Booking:
+        # Loai bo ve trung lap
         unique_seat_ids = list(dict.fromkeys(seat_ids))
         if not unique_seat_ids or len(unique_seat_ids) != len(seat_ids):
             raise InvalidBookingError("At least one unique seat is required")
 
         with self._unit_of_work as uow:
             showtime = uow.showtimes.get_by_id(showtime_id)
+            # kiem tra suat chieu co ton tai khong
             if showtime is None:
                 raise ShowtimeNotFoundError("Showtime was not found")
+            if showtime.start_time <= datetime.now(timezone.utc):
+                raise InvalidBookingError("Cannot book tickets for an ended or ongoing showtime")
 
             seats = uow.seats.get_by_ids(unique_seat_ids)
             found_ids = {seat.id for seat in seats}
+            # Doi soat ghe va phong chieu
             if any(seat_id not in found_ids for seat_id in unique_seat_ids):
                 raise SeatNotFoundError("One or more seats were not found")
             if any(seat.room_name != showtime.room_name for seat in seats):
@@ -41,17 +48,17 @@ class BookingService:
             uow.commit()
             booking.seat_ids = unique_seat_ids
             return booking
-
+    # Lay danh sach ve cua user
     def get_user_bookings(self, user_id: int) -> list[Booking]:
         with self._unit_of_work as uow:
             return uow.bookings.list_by_user_id(user_id)
-
+    # Lay thong tin ve
     def get_booking(self, user_id: int, booking_id: int) -> Booking:
         with self._unit_of_work as uow:
             booking = uow.bookings.get_by_id(booking_id)
-            self._ensure_owner(booking, user_id)
+            self._ensure_owner(booking, user_id) # Kiem tra quyen truy cap
             return booking
-
+    # Huy dat ve
     def cancel_booking(self, user_id: int, booking_id: int) -> Booking:
         with self._unit_of_work as uow:
             booking = uow.bookings.get_by_id(booking_id)

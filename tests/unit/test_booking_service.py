@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -76,7 +76,7 @@ class FakeUnitOfWork:
 
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
-    showtime = Showtime(id=10, movie_id=1, room_name="ROOM_1", start_time=datetime.now(UTC))
+    showtime = Showtime(id=10, movie_id=1, room_name="ROOM_1", start_time=datetime.now(UTC) + timedelta(hours=2))
     seats = [Seat(id=1, room_name="ROOM_1", row="A", number=1), Seat(id=2, room_name="ROOM_1", row="A", number=2)]
     return FakeUnitOfWork(showtime, seats)
 
@@ -140,3 +140,9 @@ def test_booking_rejects_empty_or_duplicate_seats(fake_uow: FakeUnitOfWork) -> N
     with pytest.raises(InvalidBookingError):
         service.create_booking(user_id=7, showtime_id=10, seat_ids=[1, 1])
 
+# Khong tao booking neu showtime da ket thuc
+def test_booking_rejects_ended_showtime(fake_uow: FakeUnitOfWork) -> None:
+    fake_uow.showtimes.showtime.start_time = datetime.now(UTC) - timedelta(hours=2)
+    service = BookingService(fake_uow)
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
