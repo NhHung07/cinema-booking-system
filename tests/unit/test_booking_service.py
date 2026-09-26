@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.application.services.booking_service import BookingService
-from app.core.exceptions import SeatAlreadyBookedError, ShowtimeNotFoundError, UnauthorizedBookingAccessError
+from app.core.exceptions import SeatAlreadyBookedError, ShowtimeNotFoundError, UnauthorizedBookingAccessError, InvalidBookingError
 from app.domain.entities import Booking, BookingStatus, Seat, Showtime
 
 
@@ -128,4 +128,15 @@ def test_user_cannot_cancel_someone_elses_booking(fake_uow: FakeUnitOfWork) -> N
     booking = service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
     with pytest.raises(UnauthorizedBookingAccessError):
         service.cancel_booking(user_id=8, booking_id=booking.id)
+
+# Khong dat ve khi danh sach ghe rong hoac trung lap
+def test_booking_rejects_empty_or_duplicate_seats(fake_uow: FakeUnitOfWork) -> None:
+    service = BookingService(fake_uow)
+    
+    # ghe rong
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[])
+    # ghe trung lap
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[1, 1])
 
