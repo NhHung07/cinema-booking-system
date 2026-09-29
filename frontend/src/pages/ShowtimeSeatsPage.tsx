@@ -1,13 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Clock,
+  Film,
+  MapPin,
+  Ticket,
+  X,
+  AlertCircle,
+} from "lucide-react";
 
 import { createBooking } from "../api/bookingApi";
 import { getApiErrorMessage, getApiStatus } from "../api/errors";
-import { getShowtimeSeats } from "../api/showtimeApi";
+import { getMovieById } from "../api/movieApi";
+import { getShowtimes, getShowtimeSeats } from "../api/showtimeApi";
+import { BookingTicketModal } from "../components/BookingTicketModal";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Loading } from "../components/Loading";
 import { SeatButton } from "../components/SeatButton";
-import type { Seat } from "../types/showtime";
+import type { Movie } from "../types/movie";
+import type { Seat, Showtime } from "../types/showtime";
+import { formatCurrency, formatDateTime } from "../utils/date";
+import { getMovieMeta, getSeatPrice, isVipSeat } from "../utils/movieMeta";
 
 function seatRow(seatNumber: string): string {
   return seatNumber.replace(/\d+$/, "") || "Khác";
@@ -16,14 +30,22 @@ function seatRow(seatNumber: string): string {
 export function ShowtimeSeatsPage() {
   const { showtimeId: showtimeIdParam } = useParams();
   const showtimeId = Number(showtimeIdParam);
+
   const [seats, setSeats] = useState<Seat[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<number[]>([]);
+  const [showtime, setShowtime] = useState<Showtime | null>(null);
+  const [movie, setMovie] = useState<Movie | null>(null);
+
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function loadSeats() {
+  // Success modal state
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [lastBookingId, setLastBookingId] = useState<number | null>(null);
+  const [confirmedSeats, setConfirmedSeats] = useState<Seat[]>([]);
+
+  async function loadData() {
     if (!Number.isInteger(showtimeId) || showtimeId <= 0) {
       setError("Showtime ID không hợp lệ.");
       setIsLoading(false);
@@ -32,18 +54,34 @@ export function ShowtimeSeatsPage() {
     setError(null);
     setIsLoading(true);
     try {
-      const availability = await getShowtimeSeats(showtimeId);
+      // Load seats
+      const availabilityPromise = getShowtimeSeats(showtimeId);
+      // Load all showtimes to find this showtime's movie_id
+      const showtimesPromise = getShowtimes();
+
+      const [availability, allShowtimes] = await Promise.all([
+        availabilityPromise,
+        showtimesPromise,
+      ]);
+
       setSeats(availability.seats);
       setSelectedSeatIds([]);
+
+      const foundShowtime = allShowtimes.find((st) => st.id === showtimeId);
+      if (foundShowtime) {
+        setShowtime(foundShowtime);
+        const movieData = await getMovieById(foundShowtime.movie_id);
+        setMovie(movieData);
+      }
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Không thể tải sơ đồ ghế."));
+      setError(getApiErrorMessage(requestError, "Không thể tải sơ đồ ghế của suất chiếu."));
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadSeats();
+    void loadData();
   }, [showtimeIdParam]);
 
   const selectedSeats = useMemo(
@@ -57,14 +95,38 @@ export function ShowtimeSeatsPage() {
       const row = seatRow(seat.seat_number);
       grouped[row] = [...(grouped[row] ?? []), seat];
     }
-    return Object.entries(grouped).sort(([left], [right]) => left.localeCompare(right, "vi"));
+    // Sort seats in each row by seat number
+    for (const row of Object.keys(grouped)) {
+      grouped[row].sort((a, b) =>
+        a.seat_number.localeCompare(b.seat_number, undefined, { numeric: true })
+      );
+    }
+    return Object.entries(grouped).sort(([left], [right]) =>
+      left.localeCompare(right, "vi")
+    );
   }, [seats]);
+
+  // Pricing calculations
+  const { standardCount, vipCount, totalPrice } = useMemo(() => {
+    let standard = 0;
+    let vip = 0;
+    let total = 0;
+    for (const s of selectedSeats) {
+      const price = getSeatPrice(s.seat_number);
+      total += price;
+      if (isVipSeat(s.seat_number)) {
+        vip++;
+      } else {
+        standard++;
+      }
+    }
+    return { standardCount: standard, vipCount: vip, totalPrice: total };
+  }, [selectedSeats]);
 
   function toggleSeat(seat: Seat) {
     if (!seat.available) {
       return;
     }
-    setSuccess(null);
     setSelectedSeatIds((current) =>
       current.includes(seat.seat_id)
         ? current.filter((seatId) => seatId !== seat.seat_id)
@@ -72,25 +134,42 @@ export function ShowtimeSeatsPage() {
     );
   }
 
+  function removeSeat(seatId: number) {
+    setSelectedSeatIds((current) => current.filter((id) => id !== seatId));
+  }
+
   async function handleBooking() {
     if (selectedSeatIds.length === 0) {
       return;
     }
     setError(null);
-    setSuccess(null);
     setIsSubmitting(true);
     try {
-      await createBooking({ showtime_id: showtimeId, seat_ids: selectedSeatIds });
-      setSuccess("Đặt vé thành công. Ghế của bạn đã được xác nhận.");
-      await loadSeats();
+      const booking = await createBooking({
+        showtime_id: showtimeId,
+        seat_ids: selectedSeatIds,
+      });
+
+      // Save confirmed seats for receipt modal
+      setConfirmedSeats(selectedSeats);
+      setLastBookingId(booking.id);
+      setSuccessModalOpen(true);
+
+      // Refresh seat availability
+      const availability = await getShowtimeSeats(showtimeId);
+      setSeats(availability.seats);
+      setSelectedSeatIds([]);
     } catch (requestError) {
       if (getApiStatus(requestError) === 409) {
-        await loadSeats();
+        // Seat conflict
+        const availability = await getShowtimeSeats(showtimeId);
+        setSeats(availability.seats);
+        setSelectedSeatIds([]);
         setError(
-          "Một hoặc nhiều ghế bạn chọn vừa được người khác đặt. Vui lòng chọn ghế khác.",
+          "Rất tiếc! Một hoặc nhiều ghế bạn chọn vừa được người khác đặt trước. Vui lòng chọn ghế khác.",
         );
       } else {
-        setError(getApiErrorMessage(requestError, "Không thể hoàn tất booking."));
+        setError(getApiErrorMessage(requestError, "Không thể hoàn tất đặt vé."));
       }
     } finally {
       setIsSubmitting(false);
@@ -98,62 +177,206 @@ export function ShowtimeSeatsPage() {
   }
 
   if (isLoading) {
-    return <Loading message="Đang tải sơ đồ ghế..." />;
+    return <Loading message="Đang tải sơ đồ phòng chiếu & ghế ngồi..." />;
   }
   if (error && seats.length === 0) {
-    return <ErrorMessage message={error} onRetry={() => void loadSeats()} />;
+    return <ErrorMessage message={error} onRetry={() => void loadData()} />;
   }
 
+  const meta = movie ? getMovieMeta(movie) : null;
+
   return (
-    <section>
-      <Link className="back-link" to="/movies">
-        ← Quay lại danh sách phim
-      </Link>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Showtime #{showtimeId}</p>
-          <h1>Chọn ghế</h1>
-        </div>
-        <p className="muted">Ghế màu xám đã được đặt và không thể chọn.</p>
+    <div className="seats-page-view">
+      {/* Breadcrumb Bar */}
+      <div className="back-bar">
+        <Link
+          className="back-link-v2"
+          to={movie ? `/movies/${movie.id}` : "/movies"}
+        >
+          <ArrowLeft size={18} />
+          <span>{movie ? `Quay lại: ${movie.title}` : "Quay lại"}</span>
+        </Link>
       </div>
 
-      {error ? <ErrorMessage message={error} onRetry={() => void loadSeats()} /> : null}
-      {success ? <div className="alert alert--success">{success}</div> : null}
-
-      <div className="seat-legend" aria-label="Chú thích trạng thái ghế">
-        <span><i className="legend-dot legend-dot--available" />Available</span>
-        <span><i className="legend-dot legend-dot--selected" />Selected</span>
-        <span><i className="legend-dot legend-dot--booked" />Booked</span>
-      </div>
-
-      <div className="screen">SCREEN</div>
-      <div className="seat-map" aria-label="Sơ đồ ghế">
-        {seatsByRow.map(([row, rowSeats]) => (
-          <div className="seat-row" key={row}>
-            <span className="seat-row__label">{row}</span>
-            <div className="seat-row__buttons">
-              {rowSeats.map((seat) => (
-                <SeatButton
-                  key={seat.seat_id}
-                  seat={seat}
-                  selected={selectedSeatIds.includes(seat.seat_id)}
-                  onToggle={toggleSeat}
-                />
-              ))}
+      {/* Movie Showtime Header Banner */}
+      {showtime && movie && meta && (
+        <header className="seats-header-banner">
+          <img
+            src={meta.posterUrl}
+            alt={movie.title}
+            className="seats-header-banner__poster"
+          />
+          <div className="seats-header-banner__info">
+            <div className="seats-header-banner__badges">
+              <span className="badge badge--age">{meta.ageRating}</span>
+              <span className="badge badge--format">{meta.format}</span>
+            </div>
+            <h1 className="seats-header-banner__title">{movie.title}</h1>
+            <div className="seats-header-banner__details">
+              <span className="header-detail-item">
+                <MapPin size={15} />
+                <span>Phòng {showtime.room_name}</span>
+              </span>
+              <span className="header-detail-item">
+                <Clock size={15} />
+                <span>{formatDateTime(showtime.start_time)}</span>
+              </span>
+              <span className="header-detail-item">
+                <Film size={15} />
+                <span>{movie.duration_minutes} phút</span>
+              </span>
             </div>
           </div>
-        ))}
-      </div>
+        </header>
+      )}
 
-      <aside className="booking-panel">
-        <div>
-          <span className="booking-panel__label">Selected seats</span>
-          <strong>{selectedSeats.length ? selectedSeats.map((seat) => seat.seat_number).join(", ") : "Chưa chọn ghế"}</strong>
+      {error ? (
+        <div className="alert alert--error">
+          <AlertCircle size={20} />
+          <div>{error}</div>
         </div>
-        <button className="button" type="button" onClick={() => void handleBooking()} disabled={!selectedSeatIds.length || isSubmitting}>
-          {isSubmitting ? "Đang xác nhận..." : "Confirm Booking"}
-        </button>
+      ) : null}
+
+      {/* Seat Hall Section */}
+      <section className="cinema-hall">
+        {/* Cinema Screen with Projection Light */}
+        <div className="screen-container">
+          <div className="screen-light-beam" />
+          <div className="screen-curved">
+            <span className="screen-label">MÀN HÌNH CHIẾU</span>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="seat-legend-v2" aria-label="Chú thích loại ghế">
+          <div className="legend-item">
+            <span className="legend-seat-sample legend-seat--standard" />
+            <div className="legend-text">
+              <span>Ghế Thường</span>
+              <small>90.000 ₫</small>
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-seat-sample legend-seat--vip" />
+            <div className="legend-text">
+              <span>Ghế VIP</span>
+              <small>110.000 ₫</small>
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-seat-sample legend-seat--selected" />
+            <div className="legend-text">
+              <span>Đang chọn</span>
+              <small>Đang giữ</small>
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-seat-sample legend-seat--booked" />
+            <div className="legend-text">
+              <span>Đã bán</span>
+              <small>Không khả dụng</small>
+            </div>
+          </div>
+        </div>
+
+        {/* Seat Layout Map */}
+        <div className="seat-grid-container" aria-label="Sơ đồ ghế ngồi">
+          <div className="seat-map-v2">
+            {seatsByRow.map(([row, rowSeats]) => (
+              <div className="seat-row-v2" key={row}>
+                <span className="seat-row-v2__label">{row}</span>
+                <div className="seat-row-v2__buttons">
+                  {rowSeats.map((seat) => (
+                    <SeatButton
+                      key={seat.seat_id}
+                      seat={seat}
+                      selected={selectedSeatIds.includes(seat.seat_id)}
+                      onToggle={toggleSeat}
+                    />
+                  ))}
+                </div>
+                <span className="seat-row-v2__label seat-row-v2__label--right">
+                  {row}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Floating Bottom Booking Summary Dock */}
+      <aside className="booking-summary-dock">
+        <div className="dock-content">
+          <div className="dock-seats-info">
+            <span className="dock-label">Ghế đã chọn ({selectedSeats.length})</span>
+            {selectedSeats.length === 0 ? (
+              <span className="dock-placeholder">Vui lòng chọn ghế trên sơ đồ</span>
+            ) : (
+              <div className="dock-seat-chips">
+                {selectedSeats.map((s) => (
+                  <span
+                    key={s.seat_id}
+                    className={`dock-chip ${isVipSeat(s.seat_number) ? "dock-chip--vip" : ""}`}
+                  >
+                    <span>{s.seat_number}</span>
+                    <button
+                      type="button"
+                      className="dock-chip-remove"
+                      onClick={() => removeSeat(s.seat_id)}
+                      aria-label={`Bỏ chọn ghế ${s.seat_number}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="dock-pricing">
+            <div className="dock-price-breakdown">
+              {standardCount > 0 && (
+                <span>
+                  {standardCount}x Thường ({formatCurrency(standardCount * 90000)})
+                </span>
+              )}
+              {vipCount > 0 && (
+                <span>
+                  {vipCount}x VIP ({formatCurrency(vipCount * 110000)})
+                </span>
+              )}
+            </div>
+            <div className="dock-total-price">
+              <span className="total-label">Tổng cộng:</span>
+              <strong className="total-number">{formatCurrency(totalPrice)}</strong>
+            </div>
+          </div>
+
+          <div className="dock-action">
+            <button
+              className="button button--large button--glow"
+              type="button"
+              onClick={() => void handleBooking()}
+              disabled={selectedSeatIds.length === 0 || isSubmitting}
+            >
+              <Ticket size={18} />
+              <span>
+                {isSubmitting ? "Đang xác nhận..." : `Thanh toán (${formatCurrency(totalPrice)})`}
+              </span>
+            </button>
+          </div>
+        </div>
       </aside>
-    </section>
+
+      {/* Success Receipt Modal */}
+      <BookingTicketModal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        movie={movie}
+        showtime={showtime}
+        selectedSeats={confirmedSeats}
+        bookingId={lastBookingId}
+      />
+    </div>
   );
 }

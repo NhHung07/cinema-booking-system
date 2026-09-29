@@ -1,4 +1,6 @@
 import type { Seat } from "../types/showtime";
+import { formatCurrency } from "../utils/date";
+import { getSeatPrice, isVipSeat } from "../utils/movieMeta";
 
 interface SeatButtonProps {
   seat: Seat;
@@ -7,22 +9,36 @@ interface SeatButtonProps {
 }
 
 export function SeatButton({ seat, selected, onToggle }: SeatButtonProps) {
-  const className = !seat.available
-    ? "seat-button seat-button--booked"
+  const isVip = isVipSeat(seat.seat_number);
+  const price = getSeatPrice(seat.seat_number);
+
+  let statusClass = "seat-btn--available";
+  if (!seat.available) {
+    statusClass = "seat-btn--booked";
+  } else if (selected) {
+    statusClass = "seat-btn--selected";
+  } else if (isVip) {
+    statusClass = "seat-btn--vip";
+  }
+
+  const tooltipText = !seat.available
+    ? `Ghế ${seat.seat_number} (Đã được đặt)`
     : selected
-      ? "seat-button seat-button--selected"
-      : "seat-button";
+    ? `Ghế ${seat.seat_number} (${isVip ? "VIP" : "Thường"}) - ${formatCurrency(price)} [Đang chọn]`
+    : `Ghế ${seat.seat_number} (${isVip ? "VIP" : "Thường"}) - ${formatCurrency(price)}`;
 
   return (
     <button
-      type="button"
-      className={className}
+      className={`seat-btn ${statusClass}`}
       disabled={!seat.available}
-      aria-pressed={selected}
-      aria-label={`${seat.seat_number}: ${!seat.available ? "đã được đặt" : selected ? "đang chọn" : "còn trống"}`}
+      type="button"
       onClick={() => onToggle(seat)}
+      title={tooltipText}
+      aria-label={tooltipText}
+      aria-pressed={selected}
     >
-      {seat.seat_number}
+      <span className="seat-btn__label">{seat.seat_number}</span>
+      <span className="seat-btn__cushion" />
     </button>
   );
 }
