@@ -1,1 +1,1 @@
-"""Cinema booking application package."""
+"""Package ứng dụng cinema booking."""

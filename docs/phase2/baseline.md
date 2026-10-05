@@ -51,7 +51,7 @@ HTTP 5xx, timeout, connection error và vi phạm concurrent correctness trong m
 4. Nếu PostgreSQL setup hoặc sanity test fail, dừng và sửa nguyên nhân; không fallback ngầm.
 5. Mở tab **Output** và download toàn bộ thư mục `phase1-results/` làm artifact chính thức. Notebook này đặt `BENCH_OUTPUT_DIR=/kaggle/working/phase1-results` để output có đường dẫn ổn định.
 
-Chi tiết command và ý nghĩa artifact nằm trong [`benchmark/README.md`](../../benchmark/README.md).
+Chi tiết command và ý nghĩa artifact nằm trong [docs/benchmark.md](../benchmark.md).
 
 ## Kết quả (Results)
 
@@ -103,3 +103,8 @@ So sánh cuối cùng phải tính từ measured artifacts:
 | P50 / P95 / P99 | measured | measured | calculated |
 | Failure rate | measured | measured | calculated |
 | CPU / RAM | measured | measured | calculated |
+
+---
+
+> Trở về trang chính: [README.md](../../README.md) | Xem mục lục tài liệu: [docs/README.md](../README.md)
+

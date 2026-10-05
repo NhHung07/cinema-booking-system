@@ -31,7 +31,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Navigation Links */}
+        {/* Các liên kết điều hướng trên Desktop */}
         <nav className="navbar__links desktop-nav" aria-label="Điều hướng chính">
           <NavLink
             to="/movies"
@@ -56,7 +56,7 @@ export function Navbar() {
           ) : null}
         </nav>
 
-        {/* Desktop Auth Controls */}
+        {/* Các nút điều khiển xác thực trên Desktop */}
         <div className="navbar__auth desktop-nav">
           {isAuthenticated ? (
             <div className="user-profile-badge">
@@ -96,7 +96,7 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Hamburger Button */}
+        {/* Nút Hamburger cho thiết bị di động */}
         <button
           className="mobile-menu-toggle"
           type="button"
@@ -108,7 +108,7 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Drawer trên thiết bị di động */}
       {mobileMenuOpen && (
         <div className="mobile-drawer" onClick={closeMobileMenu}>
           <div

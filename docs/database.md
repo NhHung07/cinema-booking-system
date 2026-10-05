@@ -82,3 +82,8 @@ Availability check bằng Python chỉ là một snapshot. Hai transaction đề
 | `ix_booking_seats_showtime_id`, `ix_booking_seats_seat_id` | Seat availability và allocation inspection | Tìm allocation theo showtime hoặc physical seat. Unique pair vẫn bảo đảm correctness. |
 
 Indexes được giới hạn theo access path đã biết; Phase 1 không thêm speculative index.
+
+---
+
+> Trở về trang chính: [README.md](../README.md) | Xem mục lục tài liệu: [docs/README.md](./README.md)
+

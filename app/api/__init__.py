@@ -1,1 +1,1 @@
-"""FastAPI adapters: dependencies and HTTP routes."""
+"""FastAPI adapter: dependencies và các HTTP route."""

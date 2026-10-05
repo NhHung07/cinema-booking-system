@@ -50,3 +50,8 @@ Khi cancel, hệ thống giữ row `bookings` với status `CANCELLED` để lư
 ## Transaction boundary
 
 `SQLAlchemyUnitOfWork` được cung cấp cho application service. Service sở hữu use case ở mức logic; adapter sở hữu `Session.commit()` / `rollback()`. Nếu unique constraint thất bại lúc thêm seat, adapter rollback và raise `SeatAlreadyBookedError`. Điều này đảm bảo không có booking dang dở được persist.
+
+---
+
+> Trở về trang chính: [README.md](../README.md) | Xem mục lục tài liệu: [docs/README.md](./README.md)
+

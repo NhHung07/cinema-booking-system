@@ -1,11 +1,11 @@
 /* ==========================================================================
-   CINEVERSE - DESIGN SYSTEM & MODERN CINEMA STYLESHEET
+   CINEVERSE - HỆ THỐNG THIẾT KẾ & STYLESHEET RẠP CHIẾU PHIM HIỆN ĐẠI
    ========================================================================== */
 
 :root {
   --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Colors */
+  /* Bảng màu (Colors) */
   --color-primary: #e11d48;
   --color-primary-hover: #f43f5e;
   --color-primary-glow: rgba(225, 29, 72, 0.4);
@@ -23,7 +23,7 @@
   --color-danger: #ef4444;
   --color-danger-bg: rgba(239, 68, 68, 0.16);
 
-  /* Surfaces & Backgrounds */
+  /* Bề mặt & Nền (Surfaces & Backgrounds) */
   --bg-body: #080c14;
   --bg-card: rgba(15, 23, 42, 0.82);
   --bg-card-hover: rgba(30, 41, 59, 0.9);
@@ -31,17 +31,17 @@
   --bg-surface: #111827;
   --bg-input: #0f172a;
 
-  /* Borders */
+  /* Đường viền (Borders) */
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-card: rgba(255, 255, 255, 0.12);
   --border-focus: rgba(225, 29, 72, 0.6);
 
-  /* Typography */
+  /* Kiểu chữ (Typography) */
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
 
-  /* Shadows */
+  /* Đổ bóng (Shadows) */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
@@ -49,7 +49,7 @@
 }
 
 /* ==========================================================================
-   RESET & GLOBAL SETUP
+   RESET & THIẾT LẬP TOÀN CỤC (GLOBAL SETUP)
    ========================================================================== */
 
 *, *::before, *::after {
@@ -89,7 +89,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   LAYOUT CONTAINERS
+   CONTAINER BỐ CỤC (LAYOUT CONTAINERS)
    ========================================================================== */
 
 .app-shell {
@@ -106,7 +106,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   NAVBAR
+   THANH ĐIỀU HƯỚNG (NAVBAR)
    ========================================================================== */
 
 .navbar {
@@ -259,7 +259,7 @@ button, input, select, textarea {
   padding: 0.4rem;
 }
 
-/* Mobile Drawer */
+/* Drawer trên di động (Mobile Drawer) */
 .mobile-drawer {
   display: none;
 }
@@ -337,7 +337,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   BUTTONS & BADGES
+   NÚT BẤM & HUY HIỆU (BUTTONS & BADGES)
    ========================================================================== */
 
 .button {
@@ -424,7 +424,7 @@ button, input, select, textarea {
   box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45);
 }
 
-/* Badges */
+/* Huy hiệu (Badges) */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -473,7 +473,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   ALERTS, LOADING & EMPTY STATES
+   THÔNG BÁO, TRẠNG THÁI LOADING & TRẠNG THÁI TRỐNG (EMPTY STATES)
    ========================================================================== */
 
 .alert {
@@ -570,7 +570,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   HERO SPOTLIGHT SECTION (Home / Movies Page)
+   PHẦN HERO SPOTLIGHT (Trang chủ / Movies Page)
    ========================================================================== */
 
 .hero-spotlight {
@@ -684,7 +684,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   CATALOG & TOOLBAR
+   CATALOG & THANH CÔNG CỤ (TOOLBAR)
    ========================================================================== */
 
 .page-heading {
@@ -854,7 +854,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   MOVIE CARDS & GRID
+   THẺ PHIM & LƯỚI DANH SÁCH (MOVIE CARDS & GRID)
    ========================================================================== */
 
 .movie-grid-v2 {
@@ -1014,7 +1014,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   MOVIE DETAIL PAGE
+   TRANG CHI TIẾT PHIM (MOVIE DETAIL PAGE)
    ========================================================================== */
 
 .movie-detail-view {
@@ -1200,7 +1200,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   SHOWTIMES SECTION
+   PHẦN LỊCH CHIẾU (SHOWTIMES SECTION)
    ========================================================================== */
 
 .showtimes-section {
@@ -1357,14 +1357,14 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   SEAT SELECTION PAGE & CINEMA HALL
+   TRANG CHỌN GHẾ & PHÒNG CHIẾU (SEAT SELECTION PAGE & CINEMA HALL)
    ========================================================================== */
 
 .seats-page-view {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding-bottom: 8rem; /* extra space for fixed dock */
+  padding-bottom: 8rem; /* khoảng trống thêm cho dock cố định */
 }
 
 .seats-header-banner {
@@ -1417,7 +1417,7 @@ button, input, select, textarea {
   gap: 0.35rem;
 }
 
-/* Cinema Hall */
+/* Phòng chiếu (Cinema Hall) */
 .cinema-hall {
   display: flex;
   flex-direction: column;
@@ -1428,7 +1428,7 @@ button, input, select, textarea {
   border: 1px solid var(--border-card);
 }
 
-/* Curved Screen */
+/* Màn hình cong (Curved Screen) */
 .screen-container {
   position: relative;
   width: min(38rem, 90%);
@@ -1471,7 +1471,7 @@ button, input, select, textarea {
   margin-top: 0.4rem;
 }
 
-/* Seat Legend */
+/* Chú thích loại ghế (Seat Legend) */
 .seat-legend-v2 {
   display: flex;
   align-items: center;
@@ -1530,7 +1530,7 @@ button, input, select, textarea {
   color: var(--text-muted);
 }
 
-/* Seat Grid */
+/* Lưới sơ đồ ghế (Seat Grid) */
 .seat-grid-container {
   width: 100%;
   overflow-x: auto;
@@ -1569,7 +1569,7 @@ button, input, select, textarea {
   gap: 0.7rem;
 }
 
-/* Seat Button Component */
+/* Component nút chọn ghế (Seat Button Component) */
 .seat-btn {
   position: relative;
   width: 3rem;
@@ -1603,7 +1603,7 @@ button, input, select, textarea {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Available Standard */
+/* Ghế Standard còn trống (Available Standard) */
 .seat-btn--available {
   background: #1e3a8a;
   border-color: #3b82f6;
@@ -1616,7 +1616,7 @@ button, input, select, textarea {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
-/* Available VIP */
+/* Ghế VIP còn trống (Available VIP) */
 .seat-btn--vip {
   background: linear-gradient(135deg, #78350f, #92400e);
   border-color: var(--color-gold);
@@ -1629,7 +1629,7 @@ button, input, select, textarea {
   box-shadow: 0 4px 14px var(--color-gold-glow);
 }
 
-/* Selected */
+/* Ghế đang chọn (Selected) */
 .seat-btn--selected {
   background: var(--color-primary);
   border-color: #fecdd3;
@@ -1644,7 +1644,7 @@ button, input, select, textarea {
   50% { box-shadow: 0 0 24px rgba(225, 29, 72, 0.7); }
 }
 
-/* Booked */
+/* Ghế đã đặt (Booked) */
 .seat-btn--booked {
   background: #1f2937;
   border-color: #374151;
@@ -1657,7 +1657,7 @@ button, input, select, textarea {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Bottom Floating Booking Summary Dock */
+/* Dock tóm tắt đặt vé nổi ở cạnh dưới (Bottom Floating Booking Summary Dock) */
 .booking-summary-dock {
   position: fixed;
   bottom: 1.5rem;
@@ -1786,7 +1786,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   CINEMA TICKETS & BOARDING PASS (My Bookings)
+   VÉ XEM PHIM & BOARDING PASS (My Bookings)
    ========================================================================== */
 
 .my-bookings-view {
@@ -1850,7 +1850,7 @@ button, input, select, textarea {
   gap: 1.5rem;
 }
 
-/* Boarding Pass Ticket */
+/* Vé phong cách Boarding Pass */
 .ticket-pass-card {
   display: grid;
   grid-template-columns: 1fr auto minmax(180px, 220px);
@@ -1971,7 +1971,7 @@ button, input, select, textarea {
   color: var(--color-primary-hover);
 }
 
-/* Perforated Divider */
+/* Đường răng cưa phân cách (Perforated Divider) */
 .ticket-pass-divider {
   position: relative;
   display: flex;
@@ -2004,7 +2004,7 @@ button, input, select, textarea {
   border-left: 2px dashed rgba(255, 255, 255, 0.15);
 }
 
-/* Ticket Stub */
+/* Cuống vé (Ticket Stub) */
 .ticket-pass-stub {
   padding: 1.75rem;
   background: rgba(0, 0, 0, 0.25);
@@ -2073,7 +2073,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   MODALS (Confirm & Ticket Receipt)
+   MODAL (Xác nhận & Hóa đơn vé)
    ========================================================================== */
 
 .modal-backdrop {
@@ -2133,7 +2133,7 @@ button, input, select, textarea {
   margin: 0 0 0.5rem;
 }
 
-/* Inner Cinema Ticket inside Modal */
+/* Vé xem phim bên trong Modal */
 .cinema-ticket {
   display: grid;
   grid-template-columns: 1fr auto 160px;
@@ -2269,7 +2269,7 @@ button, input, select, textarea {
   gap: 1rem;
 }
 
-/* Confirm Modal */
+/* Modal xác nhận (Confirm Modal) */
 .confirm-modal-card {
   position: relative;
   width: min(440px, 100%);
@@ -2327,7 +2327,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   AUTH PAGES (Login & Register)
+   CÁC TRANG XÁC THỰC (Login & Register)
    ========================================================================== */
 
 .auth-page-v2 {
@@ -2497,7 +2497,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   404 NOT FOUND PAGE
+   TRANG 404 KHÔNG TÌM THẤY (404 NOT FOUND PAGE)
    ========================================================================== */
 
 .not-found-section {

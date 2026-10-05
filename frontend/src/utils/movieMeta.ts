@@ -39,21 +39,45 @@ const KNOWN_MOVIES: Record<string, Partial<MovieMeta>> = {
     posterUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=700&q=85",
     backdropUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1920&q=85",
     genres: ["Hành động", "Phiêu lưu", "Khoa học viễn tưởng"],
-    rating: 8.4,
+    rating: 8.6,
     ageRating: "C16",
     director: "Denis Villeneuve",
     cast: "Timothée Chalamet, Zendaya, Rebecca Ferguson",
     format: "IMAX 3D",
+    trailerTitle: "Official Trailer - Dune: Part Two",
   },
   oppenheimer: {
     posterUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=700&q=85",
-    backdropUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1920&q=85",
+    backdropUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1920&q=85",
     genres: ["Lịch sử", "Tiểu sử", "Kịch tính"],
     rating: 8.9,
     ageRating: "C18",
     director: "Christopher Nolan",
     cast: "Cillian Murphy, Emily Blunt, Matt Damon",
     format: "IMAX 2D",
+    trailerTitle: "Official Trailer - Oppenheimer",
+  },
+  "dark knight": {
+    posterUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=700&q=85",
+    backdropUrl: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?auto=format&fit=crop&w=1920&q=85",
+    genres: ["Hành động", "Tội phạm", "Kịch tính"],
+    rating: 9.0,
+    ageRating: "C16",
+    director: "Christopher Nolan",
+    cast: "Christian Bale, Heath Ledger, Aaron Eckhart",
+    format: "IMAX 2D Remastered",
+    trailerTitle: "Official Trailer - The Dark Knight",
+  },
+  avatar: {
+    posterUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=700&q=85",
+    backdropUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=85",
+    genres: ["Hành động", "Khoa học viễn tưởng", "Phiêu lưu"],
+    rating: 7.8,
+    ageRating: "C13",
+    director: "James Cameron",
+    cast: "Sam Worthington, Zoe Saldana, Sigourney Weaver",
+    format: "RealD 3D HFR",
+    trailerTitle: "Official Trailer - Avatar: The Way of Water",
   },
 };
 
@@ -108,7 +132,7 @@ export function getMovieMeta(movie: Partial<Movie> | null | undefined): MovieMet
 }
 
 export function isVipSeat(seatNumber: string): boolean {
-  // Rows B and C, or middle numbers (e.g. 2, 3, 4) can be VIP
+  // Các hàng B và C, hoặc các số ở giữa (ví dụ: 2, 3, 4) có thể là ghế VIP
   const match = seatNumber.match(/^([A-Z]+)(\d+)$/i);
   if (!match) return false;
   const row = match[1].toUpperCase();

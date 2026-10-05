@@ -40,7 +40,7 @@ export function ShowtimeSeatsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Success modal state
+  // State của modal thành công
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lastBookingId, setLastBookingId] = useState<number | null>(null);
   const [confirmedSeats, setConfirmedSeats] = useState<Seat[]>([]);
@@ -54,9 +54,9 @@ export function ShowtimeSeatsPage() {
     setError(null);
     setIsLoading(true);
     try {
-      // Load seats
+      // Tải danh sách ghế
       const availabilityPromise = getShowtimeSeats(showtimeId);
-      // Load all showtimes to find this showtime's movie_id
+      // Tải tất cả lịch chiếu để tìm movie_id của lịch chiếu này
       const showtimesPromise = getShowtimes();
 
       const [availability, allShowtimes] = await Promise.all([
@@ -95,7 +95,7 @@ export function ShowtimeSeatsPage() {
       const row = seatRow(seat.seat_number);
       grouped[row] = [...(grouped[row] ?? []), seat];
     }
-    // Sort seats in each row by seat number
+    // Sắp xếp các ghế trong mỗi hàng theo số thứ tự ghế
     for (const row of Object.keys(grouped)) {
       grouped[row].sort((a, b) =>
         a.seat_number.localeCompare(b.seat_number, undefined, { numeric: true })
@@ -106,7 +106,7 @@ export function ShowtimeSeatsPage() {
     );
   }, [seats]);
 
-  // Pricing calculations
+  // Tính toán giá vé
   const { standardCount, vipCount, totalPrice } = useMemo(() => {
     let standard = 0;
     let vip = 0;
@@ -150,18 +150,18 @@ export function ShowtimeSeatsPage() {
         seat_ids: selectedSeatIds,
       });
 
-      // Save confirmed seats for receipt modal
+      // Lưu các ghế đã xác nhận cho modal hóa đơn (receipt)
       setConfirmedSeats(selectedSeats);
       setLastBookingId(booking.id);
       setSuccessModalOpen(true);
 
-      // Refresh seat availability
+      // Làm mới trạng thái ghế còn trống
       const availability = await getShowtimeSeats(showtimeId);
       setSeats(availability.seats);
       setSelectedSeatIds([]);
     } catch (requestError) {
       if (getApiStatus(requestError) === 409) {
-        // Seat conflict
+        // Xung đột ghế (Seat conflict)
         const availability = await getShowtimeSeats(showtimeId);
         setSeats(availability.seats);
         setSelectedSeatIds([]);
@@ -187,7 +187,7 @@ export function ShowtimeSeatsPage() {
 
   return (
     <div className="seats-page-view">
-      {/* Breadcrumb Bar */}
+      {/* Thanh điều hướng Breadcrumb */}
       <div className="back-bar">
         <Link
           className="back-link-v2"
@@ -198,7 +198,7 @@ export function ShowtimeSeatsPage() {
         </Link>
       </div>
 
-      {/* Movie Showtime Header Banner */}
+      {/* Banner tiêu đề thông tin suất chiếu */}
       {showtime && movie && meta && (
         <header className="seats-header-banner">
           <img
@@ -237,9 +237,9 @@ export function ShowtimeSeatsPage() {
         </div>
       ) : null}
 
-      {/* Seat Hall Section */}
+      {/* Khu vực phòng chiếu */}
       <section className="cinema-hall">
-        {/* Cinema Screen with Projection Light */}
+        {/* Màn chiếu với hiệu ứng ánh sáng máy chiếu */}
         <div className="screen-container">
           <div className="screen-light-beam" />
           <div className="screen-curved">
@@ -247,7 +247,7 @@ export function ShowtimeSeatsPage() {
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Chú thích loại ghế (Legend) */}
         <div className="seat-legend-v2" aria-label="Chú thích loại ghế">
           <div className="legend-item">
             <span className="legend-seat-sample legend-seat--standard" />
@@ -279,7 +279,7 @@ export function ShowtimeSeatsPage() {
           </div>
         </div>
 
-        {/* Seat Layout Map */}
+        {/* Sơ đồ bố trí ghế */}
         <div className="seat-grid-container" aria-label="Sơ đồ ghế ngồi">
           <div className="seat-map-v2">
             {seatsByRow.map(([row, rowSeats]) => (
@@ -304,7 +304,7 @@ export function ShowtimeSeatsPage() {
         </div>
       </section>
 
-      {/* Floating Bottom Booking Summary Dock */}
+      {/* Dock tóm tắt đặt vé nổi ở cạnh dưới */}
       <aside className="booking-summary-dock">
         <div className="dock-content">
           <div className="dock-seats-info">
@@ -368,7 +368,7 @@ export function ShowtimeSeatsPage() {
         </div>
       </aside>
 
-      {/* Success Receipt Modal */}
+      {/* Modal hóa đơn đặt vé thành công */}
       <BookingTicketModal
         isOpen={successModalOpen}
         onClose={() => setSuccessModalOpen(false)}

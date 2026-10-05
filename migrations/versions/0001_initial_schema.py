@@ -1,4 +1,4 @@
-"""create cinema booking schema
+"""Tạo schema ban đầu cho cinema booking
 
 Revision ID: 0001_initial
 Revises:

@@ -53,7 +53,7 @@ export function BookingTicketModal({
           </p>
         </div>
 
-        {/* Boarding Pass Style Cinema Ticket */}
+        {/* Vé xem phim phong cách Boarding Pass */}
         <div className="cinema-ticket">
           <div className="cinema-ticket__left">
             <div className="ticket-movie-row">
@@ -112,7 +112,7 @@ export function BookingTicketModal({
           </div>
         </div>
 
-        {/* Modal Action Buttons */}
+        {/* Các nút hành động của Modal */}
         <div className="modal-actions">
           <Link to="/my-bookings" className="button button--glow button--wide">
             <Ticket size={18} />

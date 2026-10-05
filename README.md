@@ -1,123 +1,177 @@
-# Cinema Booking System Backend
+# Cinema Booking System
 
-Backend FastAPI hoạt động đầy đủ cho bài tập lớn hệ thống đặt vé rạp phim. Project hỗ trợ user, JWT login, movie/showtime catalogue, seat availability, booking theo transaction, cancellation, Alembic migration, test, Docker và Locust scenario cơ bản.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
-## Kiến trúc
+Hệ thống đặt vé rạp chiếu phim Fullstack hiện đại, được thiết kế theo nguyên lý **Clean Architecture**, trang bị cơ chế xử lý tranh chấp ghế thời gian thực (concurrency control), bảo mật mật khẩu với **Argon2**, xác thực **JWT Bearer**, giao diện **React + Vite** trực quan và bộ công cụ đo lường tải **Locust**.
+
+---
+
+## 👥 Thành viên nhóm phát triển
+
+| STT | Họ và tên | Mã sinh viên |
+| :---: | :--- | :---: |
+| 1 | **Trần Nhật Hưng** | `24021507` |
+| 2 | **Nguyễn Công Huy Hoàng** | `24021486` |
+| 3 | **Phạm Đức Hùng** | `24021499` |
+
+---
+
+## ✨ Tính năng nổi bật
+
+- 🛡️ **Ngăn chặn Double-Booking an toàn:** Giải quyết triệt để race condition khi nhiều người dùng cùng tranh đặt một ghế trong cùng tích tắc bằng ràng buộc mức cơ sở dữ liệu `UNIQUE(showtime_id, seat_id)` trong PostgreSQL, tự động rollback transaction và trả về HTTP `409 Conflict`.
+- 🏛️ **Kiến trúc phân tầng sạch (Clean Architecture):** Tách biệt rạch ròi giữa Domain Entities, Application Services (Use Cases), Infrastructure Adapters (SQLAlchemy) và API Delivery (FastAPI). Tầng nghiệp vụ không phụ thuộc vào framework.
+- 🔐 **Bảo mật chuẩn mực:** Mật khẩu người dùng được băm an toàn bằng thuật toán **Argon2** (thông qua `pwdlib`). Xác thực phiên làm việc bằng **JWT (JSON Web Token)** với `HS256`.
+- 💻 **Giao diện người dùng hiện đại:** Ứng dụng SPA viết bằng React 18, TypeScript và Vite; hỗ trợ sơ đồ chọn ghế trực quan theo thời gian thực, modal vé điện tử và trang quản lý vé đã đặt.
+- 🐳 **Triển khai 1-Click với Docker:** Khởi chạy toàn bộ hệ thống (PostgreSQL, Backend API, Frontend Nginx) chỉ với một lệnh duy nhất.
+- 📊 **Bộ đo lường hiệu năng có thể tái lập (Reproducible Benchmark):** Tích hợp sẵn kịch bản Locust và dataset chuẩn (deterministic seed `42`), cho phép đo đạc RPS, P95/P99 latency và tiêu thụ tài nguyên trên môi trường máy chủ hoặc Kaggle CPU.
+
+---
+
+## 🏛️ Kiến trúc tổng quan hệ thống
 
 ```text
-API (FastAPI routes)
-        ↓
-Application / Business services
-        ↓
-Domain repository interfaces
-        ↓
-Infrastructure SQLAlchemy repositories
-        ↓
-PostgreSQL
+[ Trình duyệt / Client ]
+           │
+           ├── (Cổng 5173: HTML/JS/CSS) ──> [ Container Frontend: Nginx + React SPA ]
+           │
+           └── (Cổng 8000: RESTful API) ──> [ Container Backend: FastAPI ]
+                                                        │
+                                                        ├── Tầng Application (BookingService, CatalogService, AuthService)
+                                                        │
+                                                        ├── Tầng Domain (Entities & UnitOfWork Interfaces)
+                                                        │
+                                                        └── Tầng Infrastructure (SQLAlchemy 2.0 Adapters)
+                                                                        │
+                                                                        ↓
+                                                         [ Container Database: PostgreSQL 16 ]
 ```
 
-Business layer không có import FastAPI hoặc SQLAlchemy. Xem [architecture.md](docs/architecture.md) để hiểu trách nhiệm từng layer, dependency direction, transaction flow, cùng input/output của booking use case.
+---
 
-## Cấu trúc project
+## 🧭 Bản đồ tài liệu kỹ thuật (Documentation Index)
 
-```text
-app/
-  api/                 HTTP routes và authentication dependency dùng chung
-  application/         Use-case services và request/response schemas
-  domain/              Dataclass entities và repository interfaces
-  infrastructure/      SQLAlchemy models, session và repository adapters
-  core/                Settings, JWT/password security và typed errors
-migrations/            Alembic schema migrations
-scripts/seed.py        Demo catalogue tùy chọn
-tests/unit/            BookingService test không dùng database
-tests/integration/     API test với SQLite database độc lập
-locust/                Read-heavy load scenario cơ bản
-docs/                  Tài liệu kiến trúc và database
-```
+Toàn bộ tài liệu chuyên sâu theo từng chủ đề được tổ chức quy củ trong thư mục [`docs/`](./docs/README.md):
 
-## Database
+| Tài liệu | Nội dung chi tiết |
+| :--- | :--- |
+| 📖 [**docs/README.md**](./docs/README.md) | **Cổng thông tin tài liệu:** Mục lục và hướng dẫn tra cứu toàn bộ tài liệu kỹ thuật. |
+| 🚀 [**docs/setup.md**](./docs/setup.md) | **Hướng dẫn Cài đặt & Vận hành:** Khởi chạy bằng script 1-click, Docker Compose và thiết lập môi trường Local Dev. |
+| 🏗️ [**docs/architecture.md**](./docs/architecture.md) | **Kiến trúc hệ thống:** Phân tầng Clean Architecture, Dependency Inversion, Transaction Boundary và Booking Flow. |
+| 🗄️ [**docs/database.md**](./docs/database.md) | **Thiết kế Cơ sở dữ liệu:** Sơ đồ quan hệ ERD, cấu trúc bảng, ràng buộc chống xung đột ghế và chiến lược đánh Index. |
+| 📡 [**docs/api.md**](./docs/api.md) | **Đặc tả REST API:** Chi tiết toàn bộ endpoints, payload mẫu, định dạng phản hồi và bảng mã lỗi HTTP. |
+| 💻 [**docs/frontend.md**](./docs/frontend.md) | **Kiến trúc Frontend:** Cấu trúc React/Vite/TS, quản lý token với Axios Interceptors và trải nghiệm người dùng. |
+| 📊 [**docs/benchmark.md**](./docs/benchmark.md) | **Kiểm thử Tải & Hiệu năng:** 3 kịch bản Locust (catalogue, booking, concurrent), dataset chuẩn và cách chạy đo đạc. |
+| 📈 [**docs/phase2/baseline.md**](./docs/phase2/baseline.md) | **Báo cáo Baseline Phase 1:** Bảng số liệu đo đạc thực tế trên Kaggle CPU làm căn cứ đối chuẩn. |
 
-Các relationship chính là `Movie → Showtime`, `User → Booking`, và `Booking ↔ Seat` thông qua `BookingSeat`. Database rule quan trọng nhất là `UNIQUE(showtime_id, seat_id)`: PostgreSQL, thay vì Python pre-check có race condition, là tầng cuối cùng chống double booking. Xem [database.md](docs/database.md) để biết fields, foreign keys, ERD, constraints và lý do của các indexes.
+---
 
-## Authentication
+## ⚡ Khởi chạy nhanh (Quick Start)
 
-`POST /auth/register` hash password bằng **Argon2** thông qua `pwdlib`. Argon2 được chọn thay vì bcrypt integration trực tiếp vì đây là password-hashing algorithm hiện đại, memory-hard và `pwdlib` cung cấp API đơn giản, được duy trì. Plaintext password không bao giờ được persist.
+### Cách 1: Sử dụng Script 1-Click (Khuyến nghị)
 
-`POST /auth/login` trả về JWT đã ký, trong đó `sub` là user id và có expiry. Các protected route dùng chung một FastAPI `get_current_user()` dependency; Swagger hiển thị HTTP Bearer security và route không lặp lại token-decoding logic.
-
-## Chạy local
-
-Yêu cầu Python 3.12 trở lên.
+Chạy script khởi động để tự động dựng PostgreSQL, áp dụng migration, nạp dữ liệu mẫu và chạy Frontend + Backend:
 
 ```bash
-python -m venv .venv
+chmod +x start.sh stop.sh
+./start.sh
 ```
 
-Trên PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
+Dừng toàn bộ hệ thống:
+```bash
+./stop.sh
 ```
 
-Đặt `JWT_SECRET_KEY` khác giá trị mặc định trong `.env`, khởi động PostgreSQL, sau đó migration và chạy API:
+### Cách 2: Sử dụng Docker Compose
 
 ```bash
-alembic upgrade head
-python scripts/seed.py
-uvicorn app.main:app --reload
-```
+# Khởi chạy PostgreSQL và API
+docker compose up --build -d
 
-Swagger ở <http://localhost:8000/docs>; ReDoc ở <http://localhost:8000/redoc>.
-
-## Chạy bằng Docker
-
-```bash
-docker compose up --build
-```
-
-API đợi PostgreSQL healthcheck, chạy `alembic upgrade head`, rồi khởi động tại <http://localhost:8000>. Để thêm demo catalogue data:
-
-```bash
+# Nạp dữ liệu mẫu ban đầu
 docker compose exec api python scripts/seed.py
 ```
 
-## Tổng quan API
+### 🌐 Các cổng dịch vụ sau khi khởi động:
+- **Giao diện đặt vé (Frontend):** <http://localhost:5173>
+- **Tài liệu API tương tác (Swagger UI):** <http://localhost:8000/docs>
+- **Tài liệu API chuẩn ReDoc:** <http://localhost:8000/redoc>
+- **Cơ sở dữ liệu PostgreSQL:** `localhost:5432` (user/pass: `postgres`/`postgres`, db: `cinema`)
 
-| Method | Endpoint | Authentication | Kết quả |
-| --- | --- | --- | --- |
-| POST | `/auth/register` | Không | Tạo account |
-| POST | `/auth/login` | Không | Nhận Bearer JWT |
-| GET | `/movies`, `/movies/{id}` | Không | Đọc movie |
-| GET | `/showtimes?movie_id=&date=` | Không | Đọc showtime |
-| GET | `/showtimes/{id}/seats` | Không | Đọc availability snapshot |
-| POST | `/bookings` | Bearer JWT | Book các seat duy nhất theo transaction |
-| GET | `/bookings/me`, `/bookings/{id}` | Bearer JWT | Chỉ đọc booking của caller |
-| DELETE | `/bookings/{id}` | Bearer JWT | Cancel và release seat |
+> 💡 Xem hướng dẫn chi tiết cách thiết lập môi trường phát triển cục bộ (Local Python virtualenv & Node.js) tại [docs/setup.md](./docs/setup.md).
 
-Create booking response là `201`; seat conflict là `409`; thiếu hoặc không hợp lệ Bearer authentication là `401`; truy cập booking của user khác là `403`.
+---
 
-## Tests
+## 📂 Cấu trúc thư mục dự án
+
+```text
+cinema-booking-system/
+├── app/                     # Mã nguồn Backend FastAPI
+│   ├── api/                 # Routes HTTP, dependencies xác thực, exception handlers
+│   ├── application/         # Dịch vụ nghiệp vụ (Auth, Catalog, Booking) & Pydantic DTOs
+│   ├── domain/              # Entities và interfaces kho lưu trữ (Repository/UnitOfWork)
+│   ├── infrastructure/      # SQLAlchemy ORM models, session & DB adapters
+│   └── core/                # Cấu hình Settings, bảo mật JWT/Argon2 và typed exceptions
+├── frontend/                # Mã nguồn Frontend React + Vite + TypeScript
+│   ├── src/                 # Components, Pages, Context, API client, CSS styles
+│   └── nginx.conf           # Cấu hình Nginx phục vụ web bundle trong container
+├── docs/                    # Thư mục chứa toàn bộ tài liệu kỹ thuật chuyên sâu
+│   ├── README.md            # Mục lục tổng hợp tài liệu
+│   ├── architecture.md      # Thiết kế kiến trúc phân tầng
+│   ├── database.md          # Thiết kế CSDL, ERD & Indexing
+│   ├── api.md               # Đặc tả chi tiết các REST API
+│   ├── frontend.md          # Tài liệu hướng dẫn Frontend
+│   ├── setup.md             # Hướng dẫn cài đặt & triển khai
+│   ├── benchmark.md         # Hướng dẫn kiểm thử tải Locust
+│   └── phase2/baseline.md   # Báo cáo số liệu hiệu năng Phase 1
+├── benchmark/               # Kịch bản đo tải Locust, runner & Kaggle notebook
+├── migrations/              # Alembic database migrations
+├── scripts/                 # Scripts tiện ích (seed.py nạp dữ liệu mẫu)
+├── tests/                   # Bộ kiểm thử tự động (Unit & Integration tests)
+├── docker-compose.yml       # Cấu hình Docker Compose cho DB và API
+├── Dockerfile               # Cấu hình đóng gói container cho Backend
+├── start.sh                 # Script 1-click khởi chạy toàn bộ hệ thống
+├── stop.sh                  # Script 1-click dừng toàn bộ hệ thống
+└── requirements.txt         # Danh sách thư viện Python phụ thuộc
+```
+
+---
+
+## 📡 Tóm tắt API Endpoints
+
+| Phương thức | Đường dẫn Endpoint | Xác thực | Mô tả nghiệp vụ |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/register` | Không | Đăng ký tài khoản người dùng mới |
+| `POST` | `/auth/login` | Không | Đăng nhập nhận JWT Bearer Token |
+| `GET` | `/movies`, `/movies/{id}` | Không | Xem danh mục phim và chi tiết phim |
+| `GET` | `/showtimes?movie_id=&date=` | Không | Tra cứu danh sách suất chiếu |
+| `GET` | `/showtimes/{id}/seats` | Không | Lấy sơ đồ ghế và trạng thái khả dụng thời gian thực |
+| `POST` | `/bookings` | **Bearer JWT** | Đặt vé theo giao dịch an toàn (trả về 409 nếu trùng ghế) |
+| `GET` | `/bookings/me` | **Bearer JWT** | Xem danh sách vé đã đặt của tài khoản |
+| `GET` | `/bookings/{id}` | **Bearer JWT** | Xem chi tiết thông tin đơn vé |
+| `DELETE`| `/bookings/{id}` | **Bearer JWT** | Hủy vé đã đặt và giải phóng ghế lập tức |
+| `GET` | `/health` | Không | Kiểm tra trạng thái hoạt động của hệ thống |
+
+> 📖 Xem đặc tả chi tiết request/response và mã lỗi tại [docs/api.md](./docs/api.md).
+
+---
+
+## 🧪 Kiểm thử tự động (Automated Testing)
+
+Chạy bộ kiểm thử tự động với `pytest`:
 
 ```bash
+# Kích hoạt môi trường ảo
+source .venv/bin/activate  # Trên Linux/macOS
+# .\.venv\Scripts\Activate.ps1  # Trên Windows
+
+# Chạy test
 pytest
 ```
 
-Unit test dùng fake repository và không tạo database. Integration test dùng FastAPI test client cùng isolated in-memory SQLite database để chạy được không cần Docker. Production sử dụng PostgreSQL; Alembic migration là schema source of truth.
-
-## Phase 1 performance baseline
-
-Infrastructure benchmark reproducible gồm catalogue browsing, normal booking và concurrent same-seat booking nằm trong [`benchmark/`](benchmark/README.md). Sau khi PostgreSQL đã migrate và API chạy với một worker:
-
-```bash
-python benchmark/scripts/run_benchmark.py
-```
-
-Notebook Kaggle CPU, cách seed/reset dataset, tham số và cách đọc kết quả được mô tả trong [benchmark README](benchmark/README.md). Baseline này không thay đổi business logic hay tối ưu Phase 1.
-
-## Frontend MVP
-
-Frontend React + Vite + TypeScript nằm trong [`frontend/`](frontend/). Frontend gọi trực tiếp REST API hiện có, dùng JWT Bearer token qua `AuthContext`, và hỗ trợ register, login, movies, showtimes, chọn ghế, booking, cancellation và logout.
-
-Xem [hướng dẫn frontend](frontend/README.md) để chạy toàn hệ thống với backend ở `http://localhost:8000` và frontend ở `http://localhost:5173`.
+- **Unit Tests (`tests/unit/`):** Kiểm thử trọn vẹn nghiệp vụ đặt vé `BookingService` không cần database thật (sử dụng in-memory mock repository).
+- **Integration Tests (`tests/integration/`):** Kiểm thử toàn bộ API endpoints với FastAPI TestClient và SQLite database độc lập.

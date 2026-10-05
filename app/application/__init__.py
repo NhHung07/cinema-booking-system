@@ -1,1 +1,1 @@
-"""Use cases and framework-independent request/response contracts."""
+"""Use case và các request/response contract độc lập với framework."""

@@ -64,7 +64,7 @@ export function MovieDetailPage() {
 
   const meta = movie ? getMovieMeta(movie) : null;
 
-  // Group showtimes by date string (YYYY-MM-DD)
+  // Gom nhóm các lịch chiếu theo chuỗi ngày (YYYY-MM-DD)
   const showtimesByDate = useMemo(() => {
     const map = new Map<string, Showtime[]>();
     for (const st of showtimes) {
@@ -76,12 +76,12 @@ export function MovieDetailPage() {
     return map;
   }, [showtimes]);
 
-  // Unique sorted dates
+  // Danh sách ngày duy nhất đã sắp xếp
   const availableDates = useMemo(() => {
     return Array.from(showtimesByDate.keys()).sort();
   }, [showtimesByDate]);
 
-  // Set default selected date
+  // Thiết lập ngày mặc định được chọn
   useEffect(() => {
     if (availableDates.length > 0 && selectedDateKey === "ALL") {
       setSelectedDateKey(availableDates[0]);
@@ -105,7 +105,7 @@ export function MovieDetailPage() {
 
   return (
     <div className="movie-detail-view">
-      {/* Back button */}
+      {/* Nút quay lại */}
       <div className="back-bar">
         <Link className="back-link-v2" to="/movies">
           <ArrowLeft size={18} />
@@ -113,7 +113,7 @@ export function MovieDetailPage() {
         </Link>
       </div>
 
-      {/* Hero Cinema Backdrop */}
+      {/* Backdrop rạp chiếu phim Hero */}
       <section className="detail-hero">
         <div
           className="detail-hero__backdrop"
@@ -183,7 +183,7 @@ export function MovieDetailPage() {
         </div>
       </section>
 
-      {/* Showtimes Selection Section */}
+      {/* Phần chọn lịch chiếu */}
       <section className="showtimes-section">
         <div className="section-heading-v2">
           <div>
@@ -205,7 +205,7 @@ export function MovieDetailPage() {
           </div>
         ) : (
           <>
-            {/* Date filter tabs */}
+            {/* Các tab lọc theo ngày */}
             <div className="date-tabs-bar">
               {availableDates.map((dateStr) => {
                 const isActive = selectedDateKey === dateStr;
@@ -225,7 +225,7 @@ export function MovieDetailPage() {
               })}
             </div>
 
-            {/* Showtime Cards Grid */}
+            {/* Lưới thẻ lịch chiếu */}
             <div className="showtime-cards-grid">
               {displayedShowtimes.map((showtime) => {
                 const startTimeFormatted = formatTimeOnly(showtime.start_time);

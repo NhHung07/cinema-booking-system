@@ -45,12 +45,12 @@ export function MyBookingsPage() {
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cancellation modal state
+  // State của modal hủy vé
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<number | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Filter tab state
+  // State của tab bộ lọc
   const [statusFilter, setStatusFilter] = useState<"ALL" | "CONFIRMED" | "CANCELLED">(
     "ALL"
   );
@@ -75,7 +75,7 @@ export function MyBookingsPage() {
       showtimesData.forEach((st) => stMap.set(st.id, st));
       setShowtimesMap(stMap);
 
-      // Fetch seat maps for each unique showtime in bookings to resolve seat_id -> seat_number
+      // Lấy sơ đồ ghế cho từng lịch chiếu duy nhất trong danh sách booking để ánh xạ seat_id -> seat_number
       const uniqueShowtimeIds = Array.from(
         new Set(bookingsData.map((b) => b.showtime_id))
       );
@@ -106,7 +106,7 @@ export function MyBookingsPage() {
     void loadData();
   }, []);
 
-  // Enrich bookings with resolved details
+  // Bổ sung thông tin chi tiết đã phân giải vào danh sách booking
   const resolvedBookings: ResolvedBooking[] = useMemo(() => {
     return bookings.map((booking) => {
       const showtime = showtimesMap.get(booking.showtime_id);
@@ -137,7 +137,7 @@ export function MyBookingsPage() {
     });
   }, [bookings, moviesMap, showtimesMap, seatsMapByShowtime]);
 
-  // Filtered bookings
+  // Danh sách booking đã lọc
   const filteredBookings = useMemo(() => {
     if (statusFilter === "ALL") return resolvedBookings;
     return resolvedBookings.filter((rb) => rb.booking.status === statusFilter);
@@ -206,7 +206,7 @@ export function MyBookingsPage() {
         </div>
       ) : null}
 
-      {/* Filter Tabs */}
+      {/* Các tab lọc */}
       <div className="booking-filter-tabs">
         <button
           type="button"
@@ -236,7 +236,7 @@ export function MyBookingsPage() {
         </button>
       </div>
 
-      {/* Bookings List */}
+      {/* Danh sách booking */}
       {filteredBookings.length === 0 ? (
         <div className="empty-state">
           <Film size={48} className="empty-icon" />
@@ -268,7 +268,7 @@ export function MyBookingsPage() {
                   className={`ticket-pass-card ${!isConfirmed ? "ticket-pass-card--cancelled" : ""}`}
                   key={booking.id}
                 >
-                  {/* Left Side / Main Ticket Info */}
+                  {/* Phía bên trái / Thông tin vé chính */}
                   <div className="ticket-pass-main">
                     <div className="ticket-pass-header">
                       <div className="ticket-pass-header__badges">
@@ -352,14 +352,14 @@ export function MyBookingsPage() {
                     </div>
                   </div>
 
-                  {/* Perforated Divider */}
+                  {/* Đường răng cưa phân cách */}
                   <div className="ticket-pass-divider">
                     <span className="cutout cutout--top" />
                     <div className="dashed-line" />
                     <span className="cutout cutout--bottom" />
                   </div>
 
-                  {/* Right Side / Ticket Stub */}
+                  {/* Phía bên phải / Cuống vé */}
                   <div className="ticket-pass-stub">
                     <div className="stub-qr-wrapper">
                       <QrCode size={72} className="stub-qr" />
@@ -392,7 +392,7 @@ export function MyBookingsPage() {
         </div>
       )}
 
-      {/* Confirmation Modal for Ticket Cancellation */}
+      {/* Modal xác nhận hủy vé */}
       <ConfirmModal
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}

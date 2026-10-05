@@ -26,13 +26,13 @@ export function MovieCard({ movie }: { movie: Movie }) {
           </span>
         </div>
 
-        {/* Top Badges */}
+        {/* Các huy hiệu phía trên (Top Badges) */}
         <div className="movie-card-v2__badges-top">
           <span className="badge badge--age">{meta.ageRating}</span>
           <span className="badge badge--format">{meta.format}</span>
         </div>
 
-        {/* Bottom Rating Badge */}
+        {/* Huy hiệu đánh giá phía dưới (Bottom Rating Badge) */}
         <div className="movie-card-v2__rating">
           <Star size={14} className="star-icon" fill="currentColor" />
           <span>{meta.rating.toFixed(1)}</span>

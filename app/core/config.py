@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Runtime settings loaded from environment variables or a .env file."""
+    """Cấu hình runtime được nạp từ biến môi trường (environment variables) hoặc file .env."""
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/cinema"
     jwt_secret_key: str = "change-me-in-development"
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        """Return the comma-separated configured browser origins."""
+        """Trả về danh sách browser origin đã cấu hình dưới dạng phân cách bởi dấu phẩy."""
         return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
 

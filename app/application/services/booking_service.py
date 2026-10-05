@@ -34,8 +34,8 @@ class BookingService:
             booking = uow.bookings.add(Booking(id=None, user_id=user_id, showtime_id=showtime_id))
             if booking.id is None:
                 raise InvalidBookingError("Booking repository did not assign an identifier")
-            # The database's UNIQUE(showtime_id, seat_id) constraint is the final
-            # double-booking guard; the repository maps a constraint violation to
+            # Ràng buộc UNIQUE(showtime_id, seat_id) của database là chốt chặn cuối cùng
+            # chống double-booking; repository sẽ map lỗi vi phạm ràng buộc thành
             # SeatAlreadyBookedError.
             uow.bookings.add_seats(booking.id, showtime_id, unique_seat_ids)
             uow.commit()
@@ -56,7 +56,7 @@ class BookingService:
         with self._unit_of_work as uow:
             booking = uow.bookings.get_by_id(booking_id)
             self._ensure_owner(booking, user_id)
-            assert booking is not None  # narrows the optional type after _ensure_owner
+            assert booking is not None  # thu hẹp (narrow) kiểu optional sau _ensure_owner
             if booking.status == BookingStatus.CANCELLED:
                 return booking
             uow.bookings.cancel_and_release_seats(booking)

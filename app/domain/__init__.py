@@ -1,1 +1,1 @@
-"""Pure business entities and persistence interfaces."""
+"""Các business entity thuần túy và interface lưu trữ (persistence)."""

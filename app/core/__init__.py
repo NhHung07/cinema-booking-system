@@ -1,1 +1,1 @@
-"""Cross-cutting configuration, security, and application exceptions."""
+"""Cấu hình cross-cutting, bảo mật (security) và exception của ứng dụng."""

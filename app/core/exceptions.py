@@ -1,5 +1,5 @@
 class ApplicationError(Exception):
-    """Base error shared by domain and application use cases."""
+    """Error cơ sở được dùng chung bởi domain và các application use case."""
 
 
 class UserAlreadyExistsError(ApplicationError):

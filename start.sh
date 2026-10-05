@@ -55,6 +55,11 @@ else
         cinema-api >/dev/null
 fi
 
+# Nạp dữ liệu demo vào database
+echo "--> Đảm bảo dữ liệu demo sẵn sàng..."
+docker cp "$PROJECT_ROOT/scripts/seed.py" cinema-api:/app/scripts/seed.py >/dev/null 2>&1 || true
+docker exec cinema-api python scripts/seed.py >/dev/null 2>&1 || true
+
 # 3. Build và khởi động Frontend
 echo "--> Biên dịch Frontend (build dist)..."
 docker run --rm \

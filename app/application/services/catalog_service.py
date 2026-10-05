@@ -6,7 +6,7 @@ from app.domain.repositories.unit_of_work import UnitOfWork
 
 
 class CatalogService:
-    """Read-only movie and showtime use cases."""
+    """Các use case chỉ đọc (read-only) cho movie và showtime."""
 
     def __init__(self, unit_of_work: UnitOfWork) -> None:
         self._unit_of_work = unit_of_work

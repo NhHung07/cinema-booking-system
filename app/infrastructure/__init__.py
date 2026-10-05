@@ -1,1 +1,1 @@
-"""Database and other adapter implementations."""
+"""Database và các implementation adapter khác."""

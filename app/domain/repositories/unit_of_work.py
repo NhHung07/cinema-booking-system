@@ -8,9 +8,9 @@ from app.domain.repositories.user_repository import UserRepository
 
 
 class UnitOfWork(ABC):
-    """Transaction boundary required by application services.
+    """Ranh giới transaction (Transaction boundary) được yêu cầu bởi các application service.
 
-    This interface deliberately knows no web framework or database implementation.
+    Interface này hoàn toàn không phụ thuộc vào web framework hay database implementation cụ thể nào.
     """
 
     users: UserRepository

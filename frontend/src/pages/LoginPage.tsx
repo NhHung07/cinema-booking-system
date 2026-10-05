@@ -134,7 +134,7 @@ export function LoginPage() {
             <span>{isSubmitting ? "Đang xác thực..." : "Đăng nhập ngay"}</span>
           </button>
 
-          {/* Quick Demo Credentials */}
+          {/* Thông tin đăng nhập Demo nhanh */}
           <div className="demo-fill-box">
             <button
               type="button"

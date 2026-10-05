@@ -15,7 +15,7 @@ export function MoviesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Search & Filter state
+  // State tìm kiếm & bộ lọc
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string>("Tất cả");
   const [sortBy, setSortBy] = useState<"default" | "duration" | "title">("default");
@@ -36,7 +36,7 @@ export function MoviesPage() {
     void loadMovies();
   }, []);
 
-  // Collect all unique genres across movies
+  // Thu thập tất cả các thể loại (genre) không trùng lặp từ danh sách phim
   const availableGenres = useMemo(() => {
     const genreSet = new Set<string>();
     genreSet.add("Tất cả");
@@ -47,7 +47,7 @@ export function MoviesPage() {
     return Array.from(genreSet);
   }, [movies]);
 
-  // Filtered & Sorted movies
+  // Danh sách phim sau khi lọc & sắp xếp
   const filteredMovies = useMemo(() => {
     return movies
       .filter((movie) => {
@@ -83,7 +83,7 @@ export function MoviesPage() {
 
   return (
     <div className="movies-page">
-      {/* Hero Spotlight Banner */}
+      {/* Banner Hero Spotlight */}
       {featuredMovie && featuredMeta && !searchQuery && selectedGenre === "Tất cả" && (
         <section className="hero-spotlight">
           <div
@@ -134,7 +134,7 @@ export function MoviesPage() {
         </section>
       )}
 
-      {/* Catalog Section Header */}
+      {/* Tiêu đề phần catalog */}
       <section className="catalog-section">
         <div className="page-heading">
           <div>
@@ -150,7 +150,7 @@ export function MoviesPage() {
           </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
+        {/* Thanh công cụ tìm kiếm & bộ lọc */}
         <div className="toolbar">
           <div className="toolbar__search">
             <Search size={18} className="search-icon" />
@@ -174,7 +174,7 @@ export function MoviesPage() {
           </div>
 
           <div className="toolbar__filters">
-            {/* Genre Filter Pills */}
+            {/* Các pill lọc theo thể loại (genre) */}
             <div className="genre-pills">
               {availableGenres.map((genre) => (
                 <button
@@ -188,7 +188,7 @@ export function MoviesPage() {
               ))}
             </div>
 
-            {/* Sort Select */}
+            {/* Chọn tiêu chí sắp xếp */}
             <div className="sort-wrapper">
               <Filter size={15} />
               <select
@@ -205,7 +205,7 @@ export function MoviesPage() {
           </div>
         </div>
 
-        {/* Movies Grid */}
+        {/* Lưới danh sách phim */}
         {filteredMovies.length === 0 ? (
           <div className="empty-state">
             <Film size={44} className="empty-icon" />
