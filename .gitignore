@@ -9,7 +9,9 @@ dist/
 build/
 *.egg-info/
 .frontend-smoke.db
-benchmark/.state/
-benchmark/.ipynb_checkpoints/
-benchmark/results/*
-!benchmark/results/.gitkeep
+# Benchmark & load testing (local only)
+benchmark/
+locust/
+tests/benchmark/
+docs/benchmark.md
+docs/phase2/

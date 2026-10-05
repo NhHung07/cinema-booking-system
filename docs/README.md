@@ -1,6 +1,6 @@
 # Tài liệu kỹ thuật Cinema Booking System
 
-Chào mừng bạn đến với trung tâm tài liệu kỹ thuật của dự án **Cinema Booking System**. Thư mục này tập hợp toàn bộ các hướng dẫn, tài liệu thiết kế kiến trúc, cơ sở dữ liệu, API, frontend và báo cáo hiệu năng chuyên sâu.
+Chào mừng bạn đến với trung tâm tài liệu kỹ thuật của dự án **Cinema Booking System**. Thư mục này tập hợp toàn bộ các hướng dẫn, tài liệu thiết kế kiến trúc, cơ sở dữ liệu, API và frontend chuyên sâu.
 
 ---
 
@@ -15,8 +15,6 @@ Hệ thống tài liệu được phân chia theo từng chủ đề chuyên bi�
 | 📡 [**Đặc tả REST API (`api.md`)**](./api.md) | Chi tiết toàn bộ endpoints (Authentication, Movies, Showtimes, Seats, Bookings), cấu trúc request/response, mã trạng thái HTTP chuẩn mực và cơ chế bảo mật JWT Bearer. | Frontend, Mobile, Integration |
 | 💻 [**Tài liệu Frontend (`frontend.md`)**](./frontend.md) | Kiến trúc ứng dụng React + Vite + TypeScript, quản lý trạng thái xác thực (`AuthContext`), cấu hình Axios Interceptors, hệ thống component và giao diện người dùng. | Frontend Engineers |
 | 🚀 [**Hướng dẫn Cài đặt & Vận hành (`setup.md`)**](./setup.md) | Hướng dẫn chi tiết cách chạy dự án bằng script tự động 1-click (`start.sh` / `stop.sh`), chạy qua Docker Compose hoặc chạy từng dịch vụ thủ công trên máy local. | Developers, DevOps |
-| 📊 [**Kiểm thử tải & Benchmark (`benchmark.md`)**](./benchmark.md) | Bộ kịch bản kiểm thử hiệu năng với Locust, mô hình dữ liệu kiểm thử deterministic (seed 42), cách chạy benchmark cục bộ và trên Kaggle Notebook CPU. | QA, Performance Engineers |
-| 📈 [**Báo cáo Baseline Phase 1 (`phase2/baseline.md`)**](./phase2/baseline.md) | Số liệu đo đạc thực tế của hệ thống ở Phase 1 làm căn cứ chuẩn đối chuẩn (baseline) cho các tối ưu hóa ở Phase 2 (RPS, P95/P99 latency, tài nguyên CPU/RAM). | Tech Lead, Evaluators |
 
 ---
 

@@ -7,14 +7,14 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
-Hệ thống đặt vé rạp chiếu phim Fullstack hiện đại, được thiết kế theo nguyên lý **Clean Architecture**, trang bị cơ chế xử lý tranh chấp ghế thời gian thực (concurrency control), bảo mật mật khẩu với **Argon2**, xác thực **JWT Bearer**, giao diện **React + Vite** trực quan và bộ công cụ đo lường tải **Locust**.
+Hệ thống đặt vé rạp chiếu phim Fullstack hiện đại, được thiết kế theo nguyên lý **Clean Architecture**, trang bị cơ chế xử lý tranh chấp ghế thời gian thực (concurrency control), bảo mật mật khẩu với **Argon2**, xác thực **JWT Bearer** và giao diện **React + Vite** trực quan.
 
 ---
 
 ## 👥 Thành viên nhóm phát triển
 
 | STT | Họ và tên | Mã sinh viên |
-| :---: | :--- | :---: |
+| :---: | :--- | :--- |
 | 1 | **Trần Nhật Hưng** | `24021507` |
 | 2 | **Nguyễn Công Huy Hoàng** | `24021486` |
 | 3 | **Phạm Đức Hùng** | `24021499` |
@@ -28,7 +28,6 @@ Hệ thống đặt vé rạp chiếu phim Fullstack hiện đại, được thi
 - 🔐 **Bảo mật chuẩn mực:** Mật khẩu người dùng được băm an toàn bằng thuật toán **Argon2** (thông qua `pwdlib`). Xác thực phiên làm việc bằng **JWT (JSON Web Token)** với `HS256`.
 - 💻 **Giao diện người dùng hiện đại:** Ứng dụng SPA viết bằng React 18, TypeScript và Vite; hỗ trợ sơ đồ chọn ghế trực quan theo thời gian thực, modal vé điện tử và trang quản lý vé đã đặt.
 - 🐳 **Triển khai 1-Click với Docker:** Khởi chạy toàn bộ hệ thống (PostgreSQL, Backend API, Frontend Nginx) chỉ với một lệnh duy nhất.
-- 📊 **Bộ đo lường hiệu năng có thể tái lập (Reproducible Benchmark):** Tích hợp sẵn kịch bản Locust và dataset chuẩn (deterministic seed `42`), cho phép đo đạc RPS, P95/P99 latency và tiêu thụ tài nguyên trên môi trường máy chủ hoặc Kaggle CPU.
 
 ---
 
@@ -65,8 +64,6 @@ Toàn bộ tài liệu chuyên sâu theo từng chủ đề được tổ chức
 | 🗄️ [**docs/database.md**](./docs/database.md) | **Thiết kế Cơ sở dữ liệu:** Sơ đồ quan hệ ERD, cấu trúc bảng, ràng buộc chống xung đột ghế và chiến lược đánh Index. |
 | 📡 [**docs/api.md**](./docs/api.md) | **Đặc tả REST API:** Chi tiết toàn bộ endpoints, payload mẫu, định dạng phản hồi và bảng mã lỗi HTTP. |
 | 💻 [**docs/frontend.md**](./docs/frontend.md) | **Kiến trúc Frontend:** Cấu trúc React/Vite/TS, quản lý token với Axios Interceptors và trải nghiệm người dùng. |
-| 📊 [**docs/benchmark.md**](./docs/benchmark.md) | **Kiểm thử Tải & Hiệu năng:** 3 kịch bản Locust (catalogue, booking, concurrent), dataset chuẩn và cách chạy đo đạc. |
-| 📈 [**docs/phase2/baseline.md**](./docs/phase2/baseline.md) | **Báo cáo Baseline Phase 1:** Bảng số liệu đo đạc thực tế trên Kaggle CPU làm căn cứ đối chuẩn. |
 
 ---
 
@@ -125,14 +122,11 @@ cinema-booking-system/
 │   ├── database.md          # Thiết kế CSDL, ERD & Indexing
 │   ├── api.md               # Đặc tả chi tiết các REST API
 │   ├── frontend.md          # Tài liệu hướng dẫn Frontend
-│   ├── setup.md             # Hướng dẫn cài đặt & triển khai
-│   ├── benchmark.md         # Hướng dẫn kiểm thử tải Locust
-│   └── phase2/baseline.md   # Báo cáo số liệu hiệu năng Phase 1
-├── benchmark/               # Kịch bản đo tải Locust, runner & Kaggle notebook
+│   └── setup.md             # Hướng dẫn cài đặt & triển khai
 ├── migrations/              # Alembic database migrations
 ├── scripts/                 # Scripts tiện ích (seed.py nạp dữ liệu mẫu)
 ├── tests/                   # Bộ kiểm thử tự động (Unit & Integration tests)
-├── docker-compose.yml       # Cấu hình Docker Compose cho DB và API
+├── docker-compose.yml       # Cấu hình Docker Compose cho toàn bộ hệ thống (DB, API, Frontend)
 ├── Dockerfile               # Cấu hình đóng gói container cho Backend
 ├── start.sh                 # Script 1-click khởi chạy toàn bộ hệ thống
 ├── stop.sh                  # Script 1-click dừng toàn bộ hệ thống
