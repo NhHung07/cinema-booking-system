@@ -1,19 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Sparkles, Film, Ticket, Star, Clock, X, Filter } from "lucide-react";
+import {
+  Search,
+  Sparkles,
+  Film,
+  Ticket,
+  Star,
+  Clock,
+  X,
+  Filter,
+  PlusCircle,
+  AlertCircle,
+} from "lucide-react";
 
 import { getApiErrorMessage } from "../api/errors";
-import { getMovies } from "../api/movieApi";
+import { deleteMovie, getMovies } from "../api/movieApi";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Loading } from "../components/Loading";
 import { MovieCard } from "../components/MovieCard";
+import { useAuth } from "../context/AuthContext";
 import type { Movie } from "../types/movie";
 import { getMovieMeta } from "../utils/movieMeta";
 
 export function MoviesPage() {
+  const { isAdmin } = useAuth();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State xóa phim cho admin
+  const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null);
+  const [isDeletingMovie, setIsDeletingMovie] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // State tìm kiếm & bộ lọc
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +48,27 @@ export function MoviesPage() {
       setError(getApiErrorMessage(requestError, "Không thể tải danh sách phim."));
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleDeleteMovie() {
+    if (!movieToDelete) return;
+    setIsDeletingMovie(true);
+    setActionError(null);
+    try {
+      await deleteMovie(movieToDelete.id);
+      setMovieToDelete(null);
+      await loadMovies();
+    } catch (err) {
+      setActionError(
+        getApiErrorMessage(
+          err,
+          "Không thể xóa phim này. Có thể phim đã có suất chiếu với người đặt vé."
+        )
+      );
+      setMovieToDelete(null);
+    } finally {
+      setIsDeletingMovie(false);
     }
   }
 
@@ -134,6 +174,35 @@ export function MoviesPage() {
         </section>
       )}
 
+      {actionError ? (
+        <div
+          className="alert alert--error"
+          style={{
+            maxWidth: "1200px",
+            margin: "1.5rem auto 0",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <AlertCircle size={18} />
+          <span style={{ flex: 1 }}>{actionError}</span>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "inherit",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : null}
+
       {/* Tiêu đề phần catalog */}
       <section className="catalog-section">
         <div className="page-heading">
@@ -144,9 +213,17 @@ export function MoviesPage() {
               <span>Phim đang chiếu</span>
             </h2>
           </div>
-          <div className="catalog-stat">
-            <span className="count-number">{filteredMovies.length}</span>
-            <span className="count-label">phim có sẵn</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            {isAdmin ? (
+              <Link to="/admin/movies/new" className="button button--small button--glow">
+                <PlusCircle size={16} />
+                <span>Thêm phim & suất chiếu</span>
+              </Link>
+            ) : null}
+            <div className="catalog-stat">
+              <span className="count-number">{filteredMovies.length}</span>
+              <span className="count-label">phim có sẵn</span>
+            </div>
           </div>
         </div>
 
@@ -231,11 +308,27 @@ export function MoviesPage() {
         ) : (
           <div className="movie-grid-v2">
             {filteredMovies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
+              <MovieCard
+                key={movie.id}
+                movie={movie}
+                onDelete={(m) => setMovieToDelete(m)}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {/* Modal xác nhận xóa phim */}
+      <ConfirmModal
+        isOpen={Boolean(movieToDelete)}
+        title="Xóa phim"
+        message={`Bạn có chắc chắn muốn xóa phim "${movieToDelete?.title}"? Thao tác này sẽ xóa các suất chiếu chưa có người đặt vé. Không thể hoàn tác.`}
+        confirmText="Xác nhận xóa"
+        isDanger={true}
+        isLoading={isDeletingMovie}
+        onConfirm={() => void handleDeleteMovie()}
+        onClose={() => setMovieToDelete(null)}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Film,
@@ -14,8 +14,10 @@ import {
 
 import { register } from "../api/authApi";
 import { getApiErrorMessage } from "../api/errors";
+import { useAuth } from "../context/AuthContext";
 
 export function RegisterPage() {
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,6 +26,12 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/movies", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,10 +48,13 @@ export function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await register({ email, password, full_name: fullName });
+      await register({ email: email.trim(), password, full_name: fullName.trim() });
       navigate("/login", {
         replace: true,
-        state: { message: "Đăng ký thành công! Hãy đăng nhập để trải nghiệm đặt vé." },
+        state: {
+          message: "Đăng ký thành công! Hãy đăng nhập để trải nghiệm đặt vé.",
+          email: email.trim(),
+        },
       });
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, "Không thể đăng ký tài khoản. Email này có thể đã được sử dụng."));

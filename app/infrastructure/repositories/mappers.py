@@ -3,11 +3,26 @@ from app.infrastructure.database.models import BookingModel, MovieModel, SeatMod
 
 
 def to_user(model: UserModel) -> User:
-    return User(model.id, model.email, model.password_hash, model.full_name, model.created_at)
+    return User(
+        id=model.id,
+        email=model.email,
+        password_hash=model.password_hash,
+        full_name=model.full_name,
+        role=model.role,
+        created_at=model.created_at,
+    )
 
 
 def to_movie(model: MovieModel) -> Movie:
-    return Movie(model.id, model.title, model.description, model.duration_minutes, model.release_date, model.created_at)
+    return Movie(
+        id=model.id,
+        title=model.title,
+        description=model.description,
+        duration_minutes=model.duration_minutes,
+        release_date=model.release_date,
+        poster_url=model.poster_url,
+        created_at=model.created_at,
+    )
 
 
 def to_showtime(model: ShowtimeModel) -> Showtime:

@@ -21,9 +21,15 @@ api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-      if (window.location.pathname !== "/login") {
-        window.location.assign("/login");
+      const isLoginRequest = error.config?.url?.includes("/auth/login");
+      if (!isLoginRequest) {
+        window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem("cinema_user_email");
+        window.localStorage.removeItem("cinema_user_role");
+        window.localStorage.removeItem("cinema_user_name");
+        if (window.location.pathname !== "/login") {
+          window.location.assign("/login");
+        }
       }
     }
     return Promise.reject(error);

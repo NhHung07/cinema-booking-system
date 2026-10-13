@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { Navbar } from "./components/Navbar";
+import { AdminDashboardPage } from "./pages/AdminDashboardPage";
+import { CreateMoviePage } from "./pages/CreateMoviePage";
+import { EditMoviePage } from "./pages/EditMoviePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MovieDetailPage } from "./pages/MovieDetailPage";
 import { MoviesPage } from "./pages/MoviesPage";
@@ -8,6 +11,7 @@ import { MyBookingsPage } from "./pages/MyBookingsPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ShowtimeSeatsPage } from "./pages/ShowtimeSeatsPage";
+import { AdminRoute } from "./routes/AdminRoute";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 export default function App() {
@@ -24,6 +28,11 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/showtimes/:showtimeId/seats" element={<ShowtimeSeatsPage />} />
             <Route path="/my-bookings" element={<MyBookingsPage />} />
+          </Route>
+          <Route element={<AdminRoute />}>
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/movies/new" element={<CreateMoviePage />} />
+            <Route path="/admin/movies/:movieId/edit" element={<EditMoviePage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

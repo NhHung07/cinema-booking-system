@@ -5,11 +5,12 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.application.services.analytics_service import AnalyticsService
 from app.application.services.auth_service import AuthService
 from app.application.services.booking_service import BookingService
 from app.application.services.catalog_service import CatalogService
 from app.core.config import Settings
-from app.core.exceptions import InvalidTokenError
+from app.core.exceptions import AdminAccessRequiredError, InvalidTokenError
 from app.core.security import decode_access_token
 from app.domain.entities.user import User
 from app.infrastructure.repositories.sqlalchemy_unit_of_work import SQLAlchemyUnitOfWork
@@ -53,6 +54,13 @@ def get_booking_service(
     return BookingService(unit_of_work)
 
 
+def get_analytics_service(
+    session: Annotated[Session, Depends(get_session)],
+) -> AnalyticsService:
+    return AnalyticsService(session)
+
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     session: Annotated[Session, Depends(get_session)],
@@ -68,3 +76,12 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_current_admin_user(current_user: CurrentUser) -> User:
+    if current_user.role != "admin":
+        raise AdminAccessRequiredError("Admin access is required to perform this action")
+    return current_user
+
+
+CurrentAdminUser = Annotated[User, Depends(get_current_admin_user)]

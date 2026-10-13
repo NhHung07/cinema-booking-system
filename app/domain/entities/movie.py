@@ -9,4 +9,5 @@ class Movie:
     description: str
     duration_minutes: int
     release_date: date
+    poster_url: str | None = None
     created_at: datetime | None = None

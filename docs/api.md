@@ -100,6 +100,20 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
   ```
 - **Lỗi thường gặp:** `401 Unauthorized` nếu sai email hoặc mật khẩu.
 
+#### `GET /auth/me`
+- **Mô tả:** Lấy thông tin tài khoản và vai trò (`role`) của người dùng đang đăng nhập.
+- **Yêu cầu xác thực:** **Bắt buộc** (`Bearer <token>`).
+- **Phản hồi thành công (`200 OK`):**
+  ```json
+  {
+    "id": 1,
+    "email": "admin@cinema.com",
+    "full_name": "Quản Trị Viên",
+    "role": "admin",
+    "created_at": "2026-10-10T12:00:00Z"
+  }
+  ```
+
 ---
 
 ### 3. Danh mục Phim (Movies)
@@ -119,6 +133,45 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
     }
   ]
   ```
+
+#### `POST /movies`
+- **Mô tả:** Tạo bộ phim mới vào danh mục hệ thống rạp (Chỉ dành cho Quản trị viên).
+- **Yêu cầu xác thực:** **Bắt buộc có quyền Admin** (`Bearer <token>`).
+- **Request Body:**
+  ```json
+  {
+    "title": "Avatar 3",
+    "description": "Hành trình tiếp theo của người Na'vi trên hành tinh Pandora.",
+    "duration_minutes": 190,
+    "release_date": "2025-12-19",
+    "poster_url": "/static/uploads/avatar3.jpg"
+  }
+  ```
+- **Phản hồi thành công (`201 Created`):** Đối tượng `Movie` vừa tạo kèm `id` và `poster_url`.
+- **Lỗi thường gặp:**
+  - `401 Unauthorized`: Chưa đăng nhập hoặc token không hợp lệ.
+  - `403 Forbidden`: Người dùng không có vai trò `admin`.
+  - `422 Unprocessable Entity`: Dữ liệu phim không hợp lệ (thời lượng <= 0, thiếu tiêu đề).
+
+#### `POST /movies/upload-image`
+- **Mô tả:** Tải ảnh poster phim lên máy chủ (Chỉ dành cho Quản trị viên).
+- **Yêu cầu xác thực:** **Bắt buộc có quyền Admin** (`Bearer <token>`).
+- **Request Body:**
+  ```json
+  {
+    "filename": "poster.png",
+    "image_data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+  }
+  ```
+- **Phản hồi thành công (`200 OK`):**
+  ```json
+  {
+    "image_url": "/static/uploads/a1b2c3d4e5f6.png"
+  }
+  ```
+- **Lỗi thường gặp:**
+  - `403 Forbidden`: Người dùng không có vai trò `admin`.
+  - `422 Unprocessable Entity`: Dữ liệu ảnh không hợp lệ hoặc vượt quá 10MB.
 
 #### `GET /movies/{id}`
 - **Mô tả:** Lấy thông tin chi tiết một bộ phim cụ thể theo ID.
@@ -147,6 +200,24 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
     }
   ]
   ```
+
+#### `POST /showtimes`
+- **Mô tả:** Lên lịch suất chiếu mới cho phim (Chỉ dành cho Quản trị viên).
+- **Yêu cầu xác thực:** **Bắt buộc có quyền Admin** (`Bearer <token>`).
+- **Request Body:**
+  ```json
+  {
+    "movie_id": 1,
+    "room_name": "ROOM_1",
+    "start_time": "2026-10-15T19:00:00Z"
+  }
+  ```
+- **Phản hồi thành công (`201 Created`):** Đối tượng `Showtime` vừa tạo kèm `id`.
+- **Lỗi thường gặp:**
+  - `401 Unauthorized`: Chưa đăng nhập hoặc token không hợp lệ.
+  - `403 Forbidden`: Người dùng không có vai trò `admin`.
+  - `404 Not Found`: Không tìm thấy phim theo `movie_id`.
+  - `422 Unprocessable Entity`: Phòng chiếu không tồn tại trong hệ thống.
 
 #### `GET /showtimes/{id}/seats`
 - **Mô tả:** Lấy sơ đồ ghế và trạng thái khả dụng thời gian thực của suất chiếu.
@@ -178,7 +249,7 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
 ### 5. Đặt vé & Quản lý vé (Bookings)
 
 #### `POST /bookings`
-- **Mô tả:** Thực hiện đặt vé cho các ghế được chọn trong một suất chiếu.
+- **Mô tả:** Thực hiện đặt vé cho các ghế được chọn trong một suất chiếu (Chỉ dành cho khách hàng / User thông thường).
 - **Yêu cầu xác thực:** **Bắt buộc** (`Bearer <token>`).
 - **Request Body:**
   ```json
@@ -202,6 +273,7 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
   }
   ```
 - **Lỗi thường gặp:**
+  - `403 Forbidden`: **Tài khoản Quản trị viên (admin) không được phép đặt vé.**
   - `409 Conflict`: Ghế đã có người khác đặt trong cùng thời điểm (xử lý race condition).
   - `422 Unprocessable Entity`: Danh sách `seat_ids` rỗng hoặc chứa ghế không thuộc phòng chiếu của suất này.
 
@@ -228,6 +300,78 @@ Mọi phản hồi lỗi từ tầng ứng dụng đều tuân thủ cấu trúc
   }
   ```
 - **Lỗi thường gặp:** `403 Forbidden` nếu không phải chủ sở hữu đơn vé.
+
+---
+
+### 5. Thống kê & Báo cáo quản trị (Admin Analytics)
+
+#### `GET /admin/analytics/overview`
+- **Mô tả:** Lấy toàn bộ dữ liệu thống kê doanh thu, tỷ lệ lấp đầy phòng chiếu, danh sách phim ăn khách và các giao dịch đặt vé gần nhất phục vụ Dashboard Quản trị.
+- **Yêu cầu xác thực:** **Bắt buộc** (Tài khoản có quyền `admin`).
+- **Tham số truy vấn (Query Parameters):**
+  - `days` (integer, tùy chọn, mặc định `7`): Số ngày cần thống kê (`7`, `30`, `90` hoặc `0`/bỏ trống để lấy toàn thời gian).
+- **Phản hồi thành công (`200 OK`):**
+  ```json
+  {
+    "summary": {
+      "total_revenue": 1850000,
+      "total_tickets": 19,
+      "total_bookings": 9,
+      "total_customers": 5,
+      "average_occupancy_rate": 42.5
+    },
+    "revenue_timeline": [
+      {
+        "date": "2026-10-07",
+        "revenue": 180000,
+        "tickets": 2
+      }
+    ],
+    "top_movies": [
+      {
+        "movie_id": 1,
+        "title": "Dune: Part Two",
+        "poster_url": "https://example.com/poster.jpg",
+        "tickets_sold": 8,
+        "total_revenue": 820000
+      }
+    ],
+    "room_occupancy": [
+      {
+        "room_name": "ROOM_1",
+        "total_seats": 15,
+        "booked_seats": 9,
+        "total_capacity": 60,
+        "occupancy_rate": 15.0
+      },
+      {
+        "room_name": "ROOM_2",
+        "total_seats": 15,
+        "booked_seats": 10,
+        "total_capacity": 60,
+        "occupancy_rate": 16.7
+      }
+    ],
+    "recent_bookings": [
+      {
+        "booking_id": 12,
+        "customer_name": "Nguyễn Văn A",
+        "customer_email": "nguyenvana@gmail.com",
+        "movie_title": "Dune: Part Two",
+        "showtime_start": "2026-10-13T17:00:00Z",
+        "room_name": "ROOM_2",
+        "seats_count": 2,
+        "seat_labels": ["B2", "B3"],
+        "total_amount": 220000,
+        "status": "CONFIRMED",
+        "created_at": "2026-10-13T14:00:00Z"
+      }
+    ]
+  }
+  ```
+- **Lỗi thường gặp:**
+  - `401 Unauthorized`: Chưa đăng nhập hoặc token không hợp lệ.
+  - `403 Forbidden`: Người dùng thông thường không có quyền truy cập endpoint quản trị viên.
 
 ---
 

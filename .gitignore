@@ -15,3 +15,8 @@ locust/
 tests/benchmark/
 docs/benchmark.md
 docs/phase2/
+
+# Uploaded assets
+static/uploads/*
+!static/uploads/.gitkeep
+

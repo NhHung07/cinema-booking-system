@@ -19,6 +19,7 @@ import { getMovies } from "../api/movieApi";
 import { getShowtimes, getShowtimeSeats } from "../api/showtimeApi";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { Loading } from "../components/Loading";
+import { useAuth } from "../context/AuthContext";
 import type { Booking } from "../types/booking";
 import type { Movie } from "../types/movie";
 import type { Seat, Showtime } from "../types/showtime";
@@ -34,6 +35,7 @@ interface ResolvedBooking {
 }
 
 export function MyBookingsPage() {
+  const { isAdmin } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [moviesMap, setMoviesMap] = useState<Map<number, Movie>>(new Map());
   const [showtimesMap, setShowtimesMap] = useState<Map<number, Showtime>>(new Map());
@@ -191,6 +193,38 @@ export function MyBookingsPage() {
           Quản lý toàn bộ vé điện tử, kiểm tra phòng chiếu và lịch sử giao dịch.
         </p>
       </div>
+
+      {isAdmin ? (
+        <div
+          style={{
+            margin: "1rem 0 1.5rem",
+            padding: "1rem 1.25rem",
+            borderRadius: "12px",
+            background: "rgba(225, 29, 72, 0.08)",
+            border: "1px solid rgba(225, 29, 72, 0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <AlertCircle size={22} color="var(--color-primary)" />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>
+                Tài khoản Quản trị viên (Admin)
+              </div>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                Tài khoản Admin dùng để quản trị phim và suất chiếu, không phát sinh giao dịch đặt vé cá nhân.
+              </div>
+            </div>
+          </div>
+          <Link to="/admin/movies/new" className="button button--small button--glow">
+            Thêm phim & suất chiếu
+          </Link>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="alert alert--error">

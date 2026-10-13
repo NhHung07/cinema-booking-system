@@ -18,6 +18,7 @@ import { BookingTicketModal } from "../components/BookingTicketModal";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { Loading } from "../components/Loading";
 import { SeatButton } from "../components/SeatButton";
+import { useAuth } from "../context/AuthContext";
 import type { Movie } from "../types/movie";
 import type { Seat, Showtime } from "../types/showtime";
 import { formatCurrency, formatDateTime } from "../utils/date";
@@ -28,6 +29,7 @@ function seatRow(seatNumber: string): string {
 }
 
 export function ShowtimeSeatsPage() {
+  const { isAdmin } = useAuth();
   const { showtimeId: showtimeIdParam } = useParams();
   const showtimeId = Number(showtimeIdParam);
 
@@ -123,7 +125,16 @@ export function ShowtimeSeatsPage() {
     return { standardCount: standard, vipCount: vip, totalPrice: total };
   }, [selectedSeats]);
 
+  const bookedSeatsCount = useMemo(() => seats.filter((s) => !s.available).length, [seats]);
+  const availableSeatsCount = useMemo(() => seats.filter((s) => s.available).length, [seats]);
+  const occupancyPercentage = useMemo(() => {
+    return seats.length > 0 ? Math.round((bookedSeatsCount / seats.length) * 100) : 0;
+  }, [seats, bookedSeatsCount]);
+
   function toggleSeat(seat: Seat) {
+    if (isAdmin) {
+      return;
+    }
     if (!seat.available) {
       return;
     }
@@ -135,10 +146,15 @@ export function ShowtimeSeatsPage() {
   }
 
   function removeSeat(seatId: number) {
+    if (isAdmin) return;
     setSelectedSeatIds((current) => current.filter((id) => id !== seatId));
   }
 
   async function handleBooking() {
+    if (isAdmin) {
+      setError("Tài khoản quản trị viên không thể thực hiện đặt vé.");
+      return;
+    }
     if (selectedSeatIds.length === 0) {
       return;
     }
@@ -237,6 +253,63 @@ export function ShowtimeSeatsPage() {
         </div>
       ) : null}
 
+      {isAdmin ? (
+        <div
+          style={{
+            margin: "1rem 0",
+            padding: "1rem 1.25rem",
+            borderRadius: "12px",
+            background: "rgba(225, 29, 72, 0.08)",
+            border: "1px solid rgba(225, 29, 72, 0.25)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "8px",
+                background: "rgba(225, 29, 72, 0.2)",
+                color: "var(--color-primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>
+                Chế độ Quản trị viên: Giám sát sơ đồ phòng {showtime?.room_name}
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                Tài khoản Admin dùng để quản lý hệ thống. Ghế màu tối là các vị trí đã có khách đặt.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            <div className="metric-chip">
+              <span>Tổng: <strong>{seats.length}</strong> ghế</span>
+            </div>
+            <div className="metric-chip" style={{ color: "#f43f5e" }}>
+              <span>Đã bán: <strong>{bookedSeatsCount}</strong></span>
+            </div>
+            <div className="metric-chip" style={{ color: "#10b981" }}>
+              <span>Trống: <strong>{availableSeatsCount}</strong></span>
+            </div>
+            <div className="metric-chip">
+              <span>Lấp đầy: <strong>{occupancyPercentage}%</strong></span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Khu vực phòng chiếu */}
       <section className="cinema-hall">
         {/* Màn chiếu với hiệu ứng ánh sáng máy chiếu */}
@@ -263,13 +336,15 @@ export function ShowtimeSeatsPage() {
               <small>110.000 ₫</small>
             </div>
           </div>
-          <div className="legend-item">
-            <span className="legend-seat-sample legend-seat--selected" />
-            <div className="legend-text">
-              <span>Đang chọn</span>
-              <small>Đang giữ</small>
+          {!isAdmin ? (
+            <div className="legend-item">
+              <span className="legend-seat-sample legend-seat--selected" />
+              <div className="legend-text">
+                <span>Đang chọn</span>
+                <small>Đang giữ</small>
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="legend-item">
             <span className="legend-seat-sample legend-seat--booked" />
             <div className="legend-text">
@@ -305,68 +380,112 @@ export function ShowtimeSeatsPage() {
       </section>
 
       {/* Dock tóm tắt đặt vé nổi ở cạnh dưới */}
-      <aside className="booking-summary-dock">
-        <div className="dock-content">
-          <div className="dock-seats-info">
-            <span className="dock-label">Ghế đã chọn ({selectedSeats.length})</span>
-            {selectedSeats.length === 0 ? (
-              <span className="dock-placeholder">Vui lòng chọn ghế trên sơ đồ</span>
-            ) : (
-              <div className="dock-seat-chips">
-                {selectedSeats.map((s) => (
-                  <span
-                    key={s.seat_id}
-                    className={`dock-chip ${isVipSeat(s.seat_number) ? "dock-chip--vip" : ""}`}
-                  >
-                    <span>{s.seat_number}</span>
-                    <button
-                      type="button"
-                      className="dock-chip-remove"
-                      onClick={() => removeSeat(s.seat_id)}
-                      aria-label={`Bỏ chọn ghế ${s.seat_number}`}
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
+      {isAdmin ? (
+        <aside className="booking-summary-dock" style={{ borderColor: "rgba(225, 29, 72, 0.3)" }}>
+          <div className="dock-content" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600 }}>
+                <span
+                  style={{
+                    fontSize: "0.7rem",
+                    padding: "0.2rem 0.5rem",
+                    borderRadius: "0.25rem",
+                    background: "var(--color-primary)",
+                    color: "#fff",
+                    fontWeight: 700,
+                  }}
+                >
+                  ADMIN MONITOR
+                </span>
+                <span>Phòng {showtime?.room_name} • Tỷ lệ đặt: {occupancyPercentage}% ({bookedSeatsCount}/{seats.length} ghế)</span>
               </div>
-            )}
-          </div>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                Thời gian chiếu: {formatDateTime(showtime?.start_time)}
+              </div>
+            </div>
 
-          <div className="dock-pricing">
-            <div className="dock-price-breakdown">
-              {standardCount > 0 && (
-                <span>
-                  {standardCount}x Thường ({formatCurrency(standardCount * 90000)})
-                </span>
-              )}
-              {vipCount > 0 && (
-                <span>
-                  {vipCount}x VIP ({formatCurrency(vipCount * 110000)})
-                </span>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <Link
+                to={movie ? `/movies/${movie.id}` : "/movies"}
+                className="button button--secondary"
+              >
+                <span>Quay lại chi tiết phim</span>
+              </Link>
+              <Link
+                to="/admin/movies/new"
+                className="button button--glow"
+              >
+                <span>Quản trị phim</span>
+              </Link>
+            </div>
+          </div>
+        </aside>
+      ) : (
+        <aside className="booking-summary-dock">
+          <div className="dock-content">
+            <div className="dock-seats-info">
+              <span className="dock-label">Ghế đã chọn ({selectedSeats.length})</span>
+              {selectedSeats.length === 0 ? (
+                <span className="dock-placeholder">Vui lòng chọn ghế trên sơ đồ</span>
+              ) : (
+                <div className="dock-seat-chips">
+                  {selectedSeats.map((s) => (
+                    <span
+                      key={s.seat_id}
+                      className={`dock-chip ${isVipSeat(s.seat_number) ? "dock-chip--vip" : ""}`}
+                    >
+                      <span>{s.seat_number}</span>
+                      <button
+                        type="button"
+                        className="dock-chip-remove"
+                        onClick={() => removeSeat(s.seat_id)}
+                        aria-label={`Bỏ chọn ghế ${s.seat_number}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
-            <div className="dock-total-price">
-              <span className="total-label">Tổng cộng:</span>
-              <strong className="total-number">{formatCurrency(totalPrice)}</strong>
+
+            <div className="dock-pricing">
+              <div className="dock-price-breakdown">
+                {standardCount > 0 && (
+                  <span>
+                    {standardCount}x Thường ({formatCurrency(standardCount * 90000)})
+                  </span>
+                )}
+                {vipCount > 0 && (
+                  <span>
+                    {vipCount}x VIP ({formatCurrency(vipCount * 110000)})
+                  </span>
+                )}
+              </div>
+              <div className="dock-total-price">
+                <span className="total-label">Tổng cộng:</span>
+                <strong className="total-number">{formatCurrency(totalPrice)}</strong>
+              </div>
+            </div>
+
+            <div className="dock-action">
+              <button
+                className="button button--large button--glow"
+                type="button"
+                onClick={() => void handleBooking()}
+                disabled={selectedSeatIds.length === 0 || isSubmitting}
+              >
+                <Ticket size={18} />
+                <span>
+                  {isSubmitting
+                    ? "Đang xác nhận..."
+                    : `Thanh toán (${formatCurrency(totalPrice)})`}
+                </span>
+              </button>
             </div>
           </div>
-
-          <div className="dock-action">
-            <button
-              className="button button--large button--glow"
-              type="button"
-              onClick={() => void handleBooking()}
-              disabled={selectedSeatIds.length === 0 || isSubmitting}
-            >
-              <Ticket size={18} />
-              <span>
-                {isSubmitting ? "Đang xác nhận..." : `Thanh toán (${formatCurrency(totalPrice)})`}
-              </span>
-            </button>
-          </div>
-        </div>
-      </aside>
+        </aside>
+      )}
 
       {/* Modal hóa đơn đặt vé thành công */}
       <BookingTicketModal

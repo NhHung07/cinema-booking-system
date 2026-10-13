@@ -16,6 +16,7 @@ erDiagram
         string email UK
         string password_hash
         string full_name
+        string role
         datetime created_at
     }
     MOVIES {
@@ -24,6 +25,7 @@ erDiagram
         text description
         int duration_minutes
         date release_date
+        string poster_url
         datetime created_at
     }
     SHOWTIMES {
@@ -58,8 +60,8 @@ erDiagram
 
 | Bảng | Primary key | Foreign key | Constraint / mục đích |
 | --- | --- | --- | --- |
-| `users` | `id` | — | `email` unique: một account cho mỗi email. Chỉ lưu Argon2 password hash. |
-| `movies` | `id` | — | Movie catalogue. |
+| `users` | `id` | — | `email` unique: một account cho mỗi email. Chỉ lưu Argon2 password hash. Trường `role` ('user' / 'admin') xác định quyền hạn. |
+| `movies` | `id` | — | Movie catalogue. Cột `poster_url` lưu URL/đường dẫn ảnh bìa của phim. |
 | `showtimes` | `id` | `movie_id → movies.id` | Một screening thuộc về một movie và có room name. |
 | `seats` | `id` | — | `UNIQUE(room_name, row, number)` ngăn hai physical seat có cùng label trong một room. |
 | `bookings` | `id` | `user_id → users.id`, `showtime_id → showtimes.id` | Lưu confirmed hoặc cancelled booking. |

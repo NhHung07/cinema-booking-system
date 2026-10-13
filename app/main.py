@@ -6,9 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.api.routes import auth_router, bookings_router, movies_router, showtimes_router
+from app.api.routes import (
+    analytics_router,
+    auth_router,
+    bookings_router,
+    movies_router,
+    showtimes_router,
+)
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
+    AdminAccessRequiredError,
+    AdminBookingForbiddenError,
     ApplicationError,
     BookingNotFoundError,
     InvalidBookingError,
@@ -36,7 +44,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
             return _error_response(409, str(exc))
         if isinstance(exc, (MovieNotFoundError, ShowtimeNotFoundError, SeatNotFoundError, BookingNotFoundError)):
             return _error_response(404, str(exc))
-        if isinstance(exc, UnauthorizedBookingAccessError):
+        if isinstance(exc, (UnauthorizedBookingAccessError, AdminAccessRequiredError, AdminBookingForbiddenError)):
             return _error_response(403, str(exc))
         if isinstance(exc, (InvalidCredentialsError, InvalidTokenError)):
             return _error_response(401, str(exc), {"WWW-Authenticate": "Bearer"})
@@ -70,7 +78,16 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    from pathlib import Path
+    from fastapi.staticfiles import StaticFiles
+
+    static_dir = Path("static")
+    uploads_dir = static_dir / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
     _register_exception_handlers(app)
+    app.include_router(analytics_router)
     app.include_router(auth_router)
     app.include_router(movies_router)
     app.include_router(showtimes_router)

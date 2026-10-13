@@ -17,6 +17,7 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: str = "user"
 
 
 class UserResponse(BaseModel):
@@ -25,4 +26,5 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     full_name: str
+    role: str = "user"
     created_at: datetime | None

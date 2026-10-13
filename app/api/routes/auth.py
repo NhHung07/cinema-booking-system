@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from app.api.dependencies import get_auth_service
+from app.api.dependencies import CurrentUser, get_auth_service
 from app.application.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from app.application.services.auth_service import AuthService
 
@@ -28,5 +28,10 @@ def login(
     request: LoginRequest,
     service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> TokenResponse:
-    token = service.login(request.email, request.password)
-    return TokenResponse(access_token=token)
+    token, role = service.login(request.email, request.password)
+    return TokenResponse(access_token=token, role=role)
+
+
+@router.get("/me", response_model=UserResponse, summary="Get current logged in user profile")
+def get_me(current_user: CurrentUser) -> UserResponse:
+    return UserResponse.model_validate(current_user)

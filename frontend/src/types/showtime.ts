@@ -6,6 +6,18 @@ export interface Showtime {
   created_at: string | null;
 }
 
+export interface CreateShowtimePayload {
+  movie_id: number;
+  room_name: string;
+  start_time: string;
+}
+
+export interface UpdateShowtimePayload {
+  room_name: string;
+  start_time: string;
+}
+
+
 export interface Seat {
   seat_id: number;
   seat_number: string;

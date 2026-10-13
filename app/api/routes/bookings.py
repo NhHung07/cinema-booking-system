@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from app.api.dependencies import CurrentUser, get_booking_service
 from app.application.schemas.booking import BookingCreateRequest, BookingResponse
 from app.application.services.booking_service import BookingService
+from app.core.exceptions import AdminBookingForbiddenError
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -20,6 +21,8 @@ def create_booking(
     current_user: CurrentUser,
     service: Annotated[BookingService, Depends(get_booking_service)],
 ) -> BookingResponse:
+    if current_user.role == "admin":
+        raise AdminBookingForbiddenError("Tài khoản quản trị viên không được phép đặt vé")
     return BookingResponse.model_validate(
         service.create_booking(current_user.id, request.showtime_id, request.seat_ids)
     )

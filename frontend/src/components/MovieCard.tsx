@@ -1,11 +1,19 @@
 import { Link } from "react-router-dom";
-import { Clock, Calendar, Star, Ticket } from "lucide-react";
+import { Clock, Calendar, Star, Ticket, Pencil, Trash2 } from "lucide-react";
 
+import { useAuth } from "../context/AuthContext";
 import type { Movie } from "../types/movie";
 import { formatDate } from "../utils/date";
 import { getMovieMeta } from "../utils/movieMeta";
 
-export function MovieCard({ movie }: { movie: Movie }) {
+export function MovieCard({
+  movie,
+  onDelete,
+}: {
+  movie: Movie;
+  onDelete?: (movie: Movie) => void;
+}) {
+  const { isAdmin } = useAuth();
   const meta = getMovieMeta(movie);
   const shortDescription =
     movie.description.length > 110 ? `${movie.description.slice(0, 110).trimEnd()}…` : movie.description;
@@ -72,6 +80,41 @@ export function MovieCard({ movie }: { movie: Movie }) {
             <Ticket size={16} />
             <span>Chọn suất chiếu</span>
           </Link>
+          {isAdmin && onDelete ? (
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", width: "100%" }}>
+              <Link
+                to={`/admin/movies/${movie.id}/edit`}
+                className="button button--secondary button--small"
+                style={{
+                  flex: 1,
+                  display: "inline-flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                }}
+                title="Sửa phim"
+              >
+                <Pencil size={14} />
+                <span>Sửa</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => onDelete(movie)}
+                className="button button--danger button--small"
+                style={{
+                  flex: 1,
+                  display: "inline-flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                }}
+                title="Xóa phim"
+              >
+                <Trash2 size={14} />
+                <span>Xóa</span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </article>

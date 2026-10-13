@@ -44,3 +44,11 @@ class InvalidBookingError(ApplicationError):
 
 class InvalidTokenError(ApplicationError):
     pass
+
+
+class AdminAccessRequiredError(ApplicationError):
+    pass
+
+
+class AdminBookingForbiddenError(ApplicationError):
+    pass

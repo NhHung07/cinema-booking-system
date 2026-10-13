@@ -1,4 +1,6 @@
+from app.application.services.analytics_service import AnalyticsService
 from app.application.services.auth_service import AuthService
 from app.application.services.booking_service import BookingService
 
-__all__ = ["AuthService", "BookingService"]
+__all__ = ["AnalyticsService", "AuthService", "BookingService"]
+

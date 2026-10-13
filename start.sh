@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
 
 echo "=== Khởi chạy Cinema Booking System ==="
@@ -34,26 +34,22 @@ until docker exec cinema-postgres pg_isready -U postgres -d cinema >/dev/null 2>
 done
 
 # 2. Khởi động Backend API container
-if [ "$(docker ps -aq -f name=^cinema-api$)" ]; then
-    if [ ! "$(docker ps -q -f name=^cinema-api$)" ]; then
-        echo "--> Khởi động cinema-api..."
-        docker start cinema-api >/dev/null
-    else
-        echo "--> cinema-api đã đang chạy."
-    fi
-else
-    echo "--> Build và chạy cinema-api..."
-    if [ ! "$(docker images -q cinema-api:latest)" ]; then
-        docker build -t cinema-api .
-    fi
-    docker run -d \
-        --name cinema-api \
-        --restart unless-stopped \
-        --network host \
-        -e DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/cinema \
-        -e CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173 \
-        cinema-api >/dev/null
-fi
+echo "--> Build và cập nhật cinema-api..."
+docker build -t cinema-api . >/dev/null
+docker rm -f cinema-api >/dev/null 2>&1 || true
+docker run -d \
+    --name cinema-api \
+    --restart unless-stopped \
+    --network host \
+    -v "$PROJECT_ROOT/static:/app/static" \
+    -e DATABASE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5432/cinema \
+    -e CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173 \
+    cinema-api >/dev/null
+
+echo "--> Chờ Backend API khởi động..."
+until docker exec cinema-api python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" >/dev/null 2>&1; do
+    sleep 1
+done
 
 # Nạp dữ liệu demo vào database
 echo "--> Đảm bảo dữ liệu demo sẵn sàng..."

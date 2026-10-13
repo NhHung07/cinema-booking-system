@@ -27,3 +27,28 @@ class SQLAlchemyShowtimeRepository(ShowtimeRepository):
     def get_by_id(self, showtime_id: int) -> Showtime | None:
         model = self._session.get(ShowtimeModel, showtime_id)
         return to_showtime(model) if model else None
+
+    def add(self, showtime: Showtime) -> Showtime:
+        model = ShowtimeModel(
+            movie_id=showtime.movie_id,
+            room_name=showtime.room_name,
+            start_time=showtime.start_time,
+        )
+        self._session.add(model)
+        self._session.flush()
+        return to_showtime(model)
+
+    def update(self, showtime: Showtime) -> Showtime:
+        model = self._session.get(ShowtimeModel, showtime.id)
+        if model is not None:
+            model.room_name = showtime.room_name
+            model.start_time = showtime.start_time
+            self._session.flush()
+            return to_showtime(model)
+        return showtime
+
+    def delete(self, showtime_id: int) -> None:
+        model = self._session.get(ShowtimeModel, showtime_id)
+        if model is not None:
+            self._session.delete(model)
+            self._session.flush()

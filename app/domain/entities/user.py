@@ -8,4 +8,5 @@ class User:
     email: str
     password_hash: str
     full_name: str
+    role: str = "user"
     created_at: datetime | None = None

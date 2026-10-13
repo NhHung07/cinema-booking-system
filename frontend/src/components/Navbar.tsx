@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Film, Ticket, LogOut, LogIn, UserPlus, Menu, X, User } from "lucide-react";
+import { Film, Ticket, LogOut, LogIn, UserPlus, Menu, X, User, PlusCircle, LayoutDashboard } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 
 export function Navbar() {
-  const { isAuthenticated, userEmail, logout } = useAuth();
+  const { isAuthenticated, userEmail, userName, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -17,7 +17,8 @@ export function Navbar() {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "U";
+  const displayName = userName || (userEmail ? userEmail.split("@")[0] : "Thành viên");
+  const userInitial = (displayName ? displayName.charAt(0) : "U").toUpperCase();
 
   return (
     <header className="navbar">
@@ -43,7 +44,7 @@ export function Navbar() {
             <span>Phim chiếu</span>
           </NavLink>
 
-          {isAuthenticated ? (
+          {isAuthenticated && !isAdmin ? (
             <NavLink
               to="/my-bookings"
               className={({ isActive }) =>
@@ -54,17 +55,57 @@ export function Navbar() {
               <span>Vé của tôi</span>
             </NavLink>
           ) : null}
+
+          {isAuthenticated && isAdmin ? (
+            <>
+              <NavLink
+                to="/admin/dashboard"
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "nav-link--active" : ""}`
+                }
+              >
+                <LayoutDashboard size={18} />
+                <span>Dashboard</span>
+              </NavLink>
+              <NavLink
+                to="/admin/movies/new"
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "nav-link--active" : ""}`
+                }
+              >
+                <PlusCircle size={18} />
+                <span>Thêm phim & suất chiếu</span>
+              </NavLink>
+            </>
+          ) : null}
         </nav>
 
         {/* Các nút điều khiển xác thực trên Desktop */}
         <div className="navbar__auth desktop-nav">
           {isAuthenticated ? (
             <div className="user-profile-badge">
-              <div className="user-avatar" title={userEmail ?? "Tài khoản"}>
+              <div className="user-avatar" title={displayName}>
                 <span className="user-avatar__initial">{userInitial}</span>
               </div>
               <span className="user-email-text" title={userEmail ?? ""}>
-                {userEmail ? userEmail.split("@")[0] : "Thành viên"}
+                {displayName}
+                {isAdmin ? (
+                  <span
+                    style={{
+                      marginLeft: "0.4rem",
+                      fontSize: "0.65rem",
+                      padding: "0.15rem 0.45rem",
+                      borderRadius: "0.25rem",
+                      background: "var(--color-primary)",
+                      color: "#fff",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Admin
+                  </span>
+                ) : null}
               </span>
               <button
                 className="button-icon-logout"
@@ -121,8 +162,16 @@ export function Navbar() {
                   <User size={20} />
                 </div>
                 <div>
-                  <div className="mobile-user-title">Tài khoản</div>
-                  <div className="mobile-user-sub">{userEmail ?? "Đã đăng nhập"}</div>
+                  <div className="mobile-user-title">{displayName}</div>
+                  <div className="mobile-user-sub">
+                    {isAdmin ? (
+                      <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>
+                        Quản Trị Viên (Admin)
+                      </span>
+                    ) : (
+                      userEmail ?? "Đã đăng nhập"
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -141,16 +190,41 @@ export function Navbar() {
 
               {isAuthenticated ? (
                 <>
-                  <NavLink
-                    to="/my-bookings"
-                    onClick={closeMobileMenu}
-                    className={({ isActive }) =>
-                      `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
-                    }
-                  >
-                    <Ticket size={20} />
-                    <span>Vé của tôi</span>
-                  </NavLink>
+                  {!isAdmin ? (
+                    <NavLink
+                      to="/my-bookings"
+                      onClick={closeMobileMenu}
+                      className={({ isActive }) =>
+                        `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
+                      }
+                    >
+                      <Ticket size={20} />
+                      <span>Vé của tôi</span>
+                    </NavLink>
+                  ) : (
+                    <>
+                      <NavLink
+                        to="/admin/dashboard"
+                        onClick={closeMobileMenu}
+                        className={({ isActive }) =>
+                          `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
+                        }
+                      >
+                        <LayoutDashboard size={20} />
+                        <span>Dashboard</span>
+                      </NavLink>
+                      <NavLink
+                        to="/admin/movies/new"
+                        onClick={closeMobileMenu}
+                        className={({ isActive }) =>
+                          `mobile-nav-link ${isActive ? "mobile-nav-link--active" : ""}`
+                        }
+                      >
+                        <PlusCircle size={20} />
+                        <span>Thêm phim & suất chiếu</span>
+                      </NavLink>
+                    </>
+                  )}
                   <button
                     className="mobile-nav-link mobile-nav-link--danger"
                     type="button"

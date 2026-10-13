@@ -118,8 +118,17 @@ export function getMovieMeta(movie: Partial<Movie> | null | undefined): MovieMet
   const posterFallback = FALLBACK_POSTERS[(id - 1) % FALLBACK_POSTERS.length];
   const backdropFallback = FALLBACK_BACKDROPS[(id - 1) % FALLBACK_BACKDROPS.length];
 
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  let resolvedPoster = matched?.posterUrl ?? posterFallback;
+  if (movie.poster_url && movie.poster_url.trim()) {
+    const rawPoster = movie.poster_url.trim();
+    resolvedPoster = rawPoster.startsWith("/static")
+      ? `${apiBase}${rawPoster}`
+      : rawPoster;
+  }
+
   return {
-    posterUrl: matched?.posterUrl ?? posterFallback,
+    posterUrl: resolvedPoster,
     backdropUrl: matched?.backdropUrl ?? backdropFallback,
     genres: matched?.genres ?? ["Phim điện ảnh", "Hành động"],
     rating: matched?.rating ?? 8.5,

@@ -10,3 +10,8 @@ export async function login(payload: LoginPayload): Promise<TokenResponse> {
   const response = await api.post<TokenResponse>("/auth/login", payload);
   return response.data;
 }
+
+export async function getMe(): Promise<User> {
+  const response = await api.get<User>("/auth/me");
+  return response.data;
+}

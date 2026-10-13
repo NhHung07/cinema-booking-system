@@ -22,7 +22,12 @@ class SQLAlchemyUserRepository(UserRepository):
         return to_user(model) if model else None
 
     def add(self, user: User) -> User:
-        model = UserModel(email=user.email, password_hash=user.password_hash, full_name=user.full_name)
+        model = UserModel(
+            email=user.email,
+            password_hash=user.password_hash,
+            full_name=user.full_name,
+            role=user.role,
+        )
         self._session.add(model)
         try:
             self._session.flush()

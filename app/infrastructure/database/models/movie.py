@@ -14,6 +14,7 @@ class MovieModel(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     release_date: Mapped[date] = mapped_column(Date, nullable=False)
+    poster_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     showtimes: Mapped[list["ShowtimeModel"]] = relationship(back_populates="movie")

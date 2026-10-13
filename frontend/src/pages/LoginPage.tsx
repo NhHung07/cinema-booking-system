@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Film,
@@ -10,36 +10,54 @@ import {
   AlertCircle,
   CheckCircle,
   Sparkles,
+  ShieldCheck,
+  UserCheck,
 } from "lucide-react";
 
-import { login } from "../api/authApi";
+import { getMe, login } from "../api/authApi";
 import { getApiErrorMessage } from "../api/errors";
 import { useAuth } from "../context/AuthContext";
 
 interface LoginLocationState {
   from?: string;
   message?: string;
+  email?: string;
 }
 
 export function LoginPage() {
-  const { login: saveToken } = useAuth();
+  const { login: saveToken, isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as LoginLocationState | null;
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => state?.email ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(state?.from ?? (isAdmin ? "/admin/movies/new" : "/movies"), { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate, state]);
+
+  async function performLogin(loginEmail: string, loginPass: string) {
     setError(null);
     setIsSubmitting(true);
     try {
-      const token = await login({ email, password });
-      saveToken(token.access_token, email);
+      const token = await login({ email: loginEmail.trim(), password: loginPass });
+      saveToken(token.access_token, loginEmail.trim(), token.role);
+
+      try {
+        const user = await getMe();
+        if (user.full_name) {
+          saveToken(token.access_token, user.email, user.role, user.full_name);
+        }
+      } catch {
+        // Fallback silently if getMe fails
+      }
+
       navigate(state?.from ?? "/movies", { replace: true });
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, "Đăng nhập không thành công. Vui lòng kiểm tra lại email và mật khẩu."));
@@ -48,9 +66,21 @@ export function LoginPage() {
     }
   }
 
-  function fillDemoAccount() {
-    setEmail("demo@gmail.com");
-    setPassword("password123");
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await performLogin(email, password);
+  }
+
+  async function handleQuickLogin(accountEmail: string, accountPass: string) {
+    setEmail(accountEmail);
+    setPassword(accountPass);
+    await performLogin(accountEmail, accountPass);
+  }
+
+  function fillAccount(accountEmail: string, accountPass: string) {
+    setEmail(accountEmail);
+    setPassword(accountPass);
+    setError(null);
   }
 
   return (
@@ -134,16 +164,80 @@ export function LoginPage() {
             <span>{isSubmitting ? "Đang xác thực..." : "Đăng nhập ngay"}</span>
           </button>
 
-          {/* Thông tin đăng nhập Demo nhanh */}
-          <div className="demo-fill-box">
-            <button
-              type="button"
-              className="demo-fill-btn"
-              onClick={fillDemoAccount}
-            >
-              <Sparkles size={14} />
-              <span>Điền tài khoản thử nghiệm (demo@gmail.com)</span>
-            </button>
+          {/* Thông tin đăng nhập nhanh & tài khoản mẫu */}
+          <div className="demo-fill-box" style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+              <Sparkles size={14} color="var(--color-primary)" />
+              <span>Đăng nhập nhanh một chạm bằng tài khoản mẫu:</span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="demo-fill-btn"
+                onClick={() => void handleQuickLogin("admin@cinema.com", "admin123")}
+                disabled={isSubmitting}
+                style={{
+                  borderColor: "rgba(225, 29, 72, 0.4)",
+                  background: "rgba(225, 29, 72, 0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  padding: "0.6rem 0.5rem",
+                  borderRadius: "8px",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Đăng nhập ngay với vai trò Quản Trị Viên (Người khởi tạo)"
+              >
+                <ShieldCheck size={16} color="var(--color-primary)" />
+                <span>Admin / Người khởi tạo</span>
+              </button>
+
+              <button
+                type="button"
+                className="demo-fill-btn"
+                onClick={() => void handleQuickLogin("demo@gmail.com", "password123")}
+                disabled={isSubmitting}
+                style={{
+                  borderColor: "rgba(56, 189, 248, 0.3)",
+                  background: "rgba(56, 189, 248, 0.06)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.4rem",
+                  padding: "0.6rem 0.5rem",
+                  borderRadius: "8px",
+                  fontSize: "0.82rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Đăng nhập ngay với vai trò Khách hàng (Đặt vé)"
+              >
+                <UserCheck size={16} color="#38bdf8" />
+                <span>Khách hàng / Đặt vé</span>
+              </button>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: "1rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              <button
+                type="button"
+                style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", textDecoration: "underline" }}
+                onClick={() => fillAccount("admin@cinema.com", "admin123")}
+              >
+                Điền Admin
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", textDecoration: "underline" }}
+                onClick={() => fillAccount("demo@gmail.com", "password123")}
+              >
+                Điền Khách
+              </button>
+            </div>
           </div>
         </form>
 
