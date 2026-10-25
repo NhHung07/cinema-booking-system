@@ -15,6 +15,7 @@ Hệ thống tài liệu được phân chia theo từng chủ đề chuyên bi�
 | 📡 [**Đặc tả REST API (`api.md`)**](./api.md) | Chi tiết toàn bộ endpoints (Authentication, Movies, Showtimes, Seats, Bookings), cấu trúc request/response, mã trạng thái HTTP chuẩn mực và cơ chế bảo mật JWT Bearer. | Frontend, Mobile, Integration |
 | 💻 [**Tài liệu Frontend (`frontend.md`)**](./frontend.md) | Kiến trúc ứng dụng React + Vite + TypeScript, quản lý trạng thái xác thực (`AuthContext`), cấu hình Axios Interceptors, hệ thống component và giao diện người dùng. | Frontend Engineers |
 | 🚀 [**Hướng dẫn Cài đặt & Vận hành (`setup.md`)**](./setup.md) | Hướng dẫn chi tiết cách chạy dự án bằng script tự động 1-click (`start.sh` / `stop.sh`), chạy qua Docker Compose hoặc chạy từng dịch vụ thủ công trên máy local. | Developers, DevOps |
+| [**Đánh giá kiến trúc backend (`phase2-evaluation.md`)**](./phase2-evaluation.md) | So sánh cache và nhiều worker trên Kaggle CPU; hướng dẫn tái lập, kịch bản tải và giới hạn của phép đo. | Backend, kiểm thử hiệu năng |
 
 ---
 
