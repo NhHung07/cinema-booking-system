@@ -181,17 +181,21 @@ def test_admin_image_upload_and_movie_creation(client: TestClient, session_facto
     image_url = upload_resp.json()["image_url"]
     assert image_url.startswith("/static/uploads/")
 
-    # 2. Test movie creation with poster_url
-    movie_payload = {
-        "title": "Moana 2",
-        "description": "Animated adventure",
-        "duration_minutes": 100,
-        "release_date": "2024-11-27",
-        "poster_url": image_url,
-    }
-    create_resp = client.post("/movies", json=movie_payload, headers=admin_headers)
-    assert create_resp.status_code == 201
-    assert create_resp.json()["poster_url"] == image_url
+    try:
+        # 2. Test movie creation with poster_url
+        movie_payload = {
+            "title": "Moana 2",
+            "description": "Animated adventure",
+            "duration_minutes": 100,
+            "release_date": "2024-11-27",
+            "poster_url": image_url,
+        }
+        create_resp = client.post("/movies", json=movie_payload, headers=admin_headers)
+        assert create_resp.status_code == 201
+        assert create_resp.json()["poster_url"] == image_url
+    finally:
+        from pathlib import Path
+        Path(image_url.lstrip("/")).unlink(missing_ok=True)
 
 
 def test_admin_create_showtime(client: TestClient, catalog: dict[str, int], session_factory) -> None:

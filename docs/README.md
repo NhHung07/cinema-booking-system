@@ -10,8 +10,7 @@ Hệ thống tài liệu được phân chia theo từng chủ đề chuyên bi�
 
 | Tài liệu | Mô tả nội dung chính | Đối tượng quan tâm |
 | :--- | :--- | :--- |
-| 🏗️ [**Kiến trúc hệ thống (`architecture.md`)**](./architecture.md) | Kiến trúc phân tầng Clean Architecture, nguyên tắc Dependency Inversion, ranh giới Unit of Work, Transaction flow chống double-booking. | Backend Engineers, Architects |
-| 📐 [**Kiến trúc chuyên sâu (`architecture1.md`)**](./architecture1.md) | Phân tích chi tiết từng tệp tin theo tầng, nguyên lý DDD, luồng vận hành end-to-end cho các ca sử dụng chính. | Backend Engineers, Architects |
+| 🏗️ [**Kiến trúc hệ thống (`architecture.md`)**](./architecture.md) | Kiến trúc phân tầng Clean Architecture, nguyên tắc SOLID/DIP, chi tiết từng tầng/file, ranh giới Unit of Work và luồng vận hành end-to-end. | Backend Engineers, Architects |
 | 🗄️ [**Thiết kế cơ sở dữ liệu (`database.md`)**](./database.md) | Sơ đồ ERD (Mermaid), chi tiết các bảng, khóa ngoại, ràng buộc `UNIQUE(showtime_id, seat_id)`, chiến lược đánh chỉ mục (indexing) và Alembic migration. | Database Engineers, Backend |
 | 📡 [**Đặc tả REST API (`api.md`)**](./api.md) | Chi tiết toàn bộ endpoints (Authentication, Movies, Showtimes, Seats, Bookings), cấu trúc request/response, mã trạng thái HTTP chuẩn mực và cơ chế bảo mật JWT Bearer. | Frontend, Mobile, Integration |
 | 💻 [**Tài liệu Frontend (`frontend.md`)**](./frontend.md) | Kiến trúc ứng dụng React + Vite + TypeScript, quản lý trạng thái xác thực (`AuthContext`), cấu hình Axios Interceptors, hệ thống component và giao diện người dùng. | Frontend Engineers |

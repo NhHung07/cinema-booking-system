@@ -11,12 +11,8 @@ class MovieCreateRequest(BaseModel):
     poster_url: str | None = Field(default=None, max_length=2048)
 
 
-class MovieUpdateRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str = Field(min_length=1)
-    duration_minutes: int = Field(gt=0, le=600)
-    release_date: date
-    poster_url: str | None = Field(default=None, max_length=2048)
+class MovieUpdateRequest(MovieCreateRequest):
+    pass
 
 
 class MovieResponse(BaseModel):
