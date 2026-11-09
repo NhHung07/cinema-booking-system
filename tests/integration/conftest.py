@@ -1,5 +1,5 @@
 from collections.abc import Callable, Generator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -51,7 +51,7 @@ def catalog(session_factory: Callable[[], Session]) -> dict[str, int]:
         )
         session.add(movie)
         session.flush()
-        showtime = ShowtimeModel(movie_id=movie.id, room_name="ROOM_1", start_time=datetime.now(UTC))
+        showtime = ShowtimeModel(movie_id=movie.id, room_name="ROOM_1", start_time=datetime.now(UTC) + timedelta(hours=2))
         seats = [
             SeatModel(room_name="ROOM_1", row="A", number=1),
             SeatModel(room_name="ROOM_1", row="A", number=2),

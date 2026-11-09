@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from app.application.services.booking_service import BookingService
-from app.core.exceptions import SeatAlreadyBookedError, ShowtimeNotFoundError, UnauthorizedBookingAccessError
+from app.core.exceptions import SeatAlreadyBookedError, ShowtimeNotFoundError, UnauthorizedBookingAccessError, InvalidBookingError
 from app.domain.entities import Booking, BookingStatus, Seat, Showtime
 
 
@@ -76,11 +76,11 @@ class FakeUnitOfWork:
 
 @pytest.fixture
 def fake_uow() -> FakeUnitOfWork:
-    showtime = Showtime(id=10, movie_id=1, room_name="ROOM_1", start_time=datetime.now(UTC))
+    showtime = Showtime(id=10, movie_id=1, room_name="ROOM_1", start_time=datetime.now(UTC) + timedelta(hours=2))
     seats = [Seat(id=1, room_name="ROOM_1", row="A", number=1), Seat(id=2, room_name="ROOM_1", row="A", number=2)]
     return FakeUnitOfWork(showtime, seats)
 
-
+# Dat ve thanh cong
 def test_booking_succeeds_and_commits(fake_uow: FakeUnitOfWork) -> None:
     booking = BookingService(fake_uow).create_booking(user_id=7, showtime_id=10, seat_ids=[1, 2])
 
@@ -89,12 +89,12 @@ def test_booking_succeeds_and_commits(fake_uow: FakeUnitOfWork) -> None:
     assert booking.seat_ids == [1, 2]
     assert fake_uow.committed is True
 
-
+# Sai showtime
 def test_booking_rejects_missing_showtime(fake_uow: FakeUnitOfWork) -> None:
     with pytest.raises(ShowtimeNotFoundError):
         BookingService(fake_uow).create_booking(user_id=7, showtime_id=999, seat_ids=[1])
 
-
+# Dat ve trung
 def test_booking_rejects_an_already_reserved_seat(fake_uow: FakeUnitOfWork) -> None:
     service = BookingService(fake_uow)
     service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
@@ -102,7 +102,7 @@ def test_booking_rejects_an_already_reserved_seat(fake_uow: FakeUnitOfWork) -> N
     with pytest.raises(SeatAlreadyBookedError):
         service.create_booking(user_id=8, showtime_id=10, seat_ids=[1])
 
-
+# Khong duoc doc ve cua nguoi khac
 def test_user_cannot_read_someone_elses_booking(fake_uow: FakeUnitOfWork) -> None:
     service = BookingService(fake_uow)
     booking = service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
@@ -110,7 +110,7 @@ def test_user_cannot_read_someone_elses_booking(fake_uow: FakeUnitOfWork) -> Non
     with pytest.raises(UnauthorizedBookingAccessError):
         service.get_booking(user_id=8, booking_id=booking.id)
 
-
+# Chi huy duoc ve cua minh 
 def test_cancel_releases_seats(fake_uow: FakeUnitOfWork) -> None:
     service = BookingService(fake_uow)
     booking = service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
@@ -121,3 +121,28 @@ def test_cancel_releases_seats(fake_uow: FakeUnitOfWork) -> None:
     assert cancelled.seat_ids == []
     replacement = service.create_booking(user_id=8, showtime_id=10, seat_ids=[1])
     assert replacement.id == 2
+
+# Khong duoc huy booking cua nguoi khac
+def test_user_cannot_cancel_someone_elses_booking(fake_uow: FakeUnitOfWork) -> None:
+    service = BookingService(fake_uow)
+    booking = service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
+    with pytest.raises(UnauthorizedBookingAccessError):
+        service.cancel_booking(user_id=8, booking_id=booking.id)
+
+# Khong dat ve khi danh sach ghe rong hoac trung lap
+def test_booking_rejects_empty_or_duplicate_seats(fake_uow: FakeUnitOfWork) -> None:
+    service = BookingService(fake_uow)
+    
+    # ghe rong
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[])
+    # ghe trung lap
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[1, 1])
+
+# Khong tao booking neu showtime da ket thuc
+def test_booking_rejects_ended_showtime(fake_uow: FakeUnitOfWork) -> None:
+    fake_uow.showtimes.showtime.start_time = datetime.now(UTC) - timedelta(hours=2)
+    service = BookingService(fake_uow)
+    with pytest.raises(InvalidBookingError):
+        service.create_booking(user_id=7, showtime_id=10, seat_ids=[1])
