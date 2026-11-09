@@ -43,9 +43,10 @@ def get_auth_service(
 
 
 def get_catalog_service(
+    request: Request,
     unit_of_work: Annotated[SQLAlchemyUnitOfWork, Depends(get_unit_of_work)],
 ) -> CatalogService:
-    return CatalogService(unit_of_work)
+    return CatalogService(unit_of_work, request.app.state.catalog_cache)
 
 
 def get_booking_service(

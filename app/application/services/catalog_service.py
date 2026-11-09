@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from app.application.ports.catalog_cache import CatalogCache
 from app.core.exceptions import InvalidBookingError, MovieNotFoundError, ShowtimeNotFoundError
 from app.domain.entities import Movie, Seat, Showtime
 from app.domain.repositories.unit_of_work import UnitOfWork
@@ -8,19 +9,33 @@ from app.domain.repositories.unit_of_work import UnitOfWork
 class CatalogService:
     """Các use case cho movie và showtime."""
 
-    def __init__(self, unit_of_work: UnitOfWork) -> None:
+    def __init__(self, unit_of_work: UnitOfWork, cache: CatalogCache | None = None) -> None:
         self._unit_of_work = unit_of_work
+        self._cache = cache
 
     def list_movies(self) -> list[Movie]:
+        if self._cache is not None:
+            cached = self._cache.get_movies()
+            if cached is not None:
+                return cached
         with self._unit_of_work as uow:
-            return uow.movies.list()
+            movies = uow.movies.list()
+        if self._cache is not None:
+            self._cache.put_movies(movies)
+        return movies
 
     def get_movie(self, movie_id: int) -> Movie:
+        if self._cache is not None:
+            cached = self._cache.get_movie(movie_id)
+            if cached is not None:
+                return cached
         with self._unit_of_work as uow:
             movie = uow.movies.get_by_id(movie_id)
             if movie is None:
                 raise MovieNotFoundError("Movie was not found")
-            return movie
+        if self._cache is not None:
+            self._cache.put_movie(movie)
+        return movie
 
     def create_movie(
         self,
@@ -140,8 +155,15 @@ class CatalogService:
             uow.commit()
 
     def list_showtimes(self, movie_id: int | None = None, show_date: date | None = None) -> list[Showtime]:
+        if self._cache is not None:
+            cached = self._cache.get_showtimes(movie_id, show_date)
+            if cached is not None:
+                return cached
         with self._unit_of_work as uow:
-            return uow.showtimes.list(movie_id=movie_id, show_date=show_date)
+            showtimes = uow.showtimes.list(movie_id=movie_id, show_date=show_date)
+        if self._cache is not None:
+            self._cache.put_showtimes(movie_id, show_date, showtimes)
+        return showtimes
 
     def get_showtime_seats(self, showtime_id: int) -> tuple[Showtime, list[Seat], set[int]]:
         with self._unit_of_work as uow:

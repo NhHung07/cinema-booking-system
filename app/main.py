@@ -1,9 +1,10 @@
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.routes import (
@@ -31,6 +32,7 @@ from app.core.exceptions import (
     UserAlreadyExistsError,
 )
 from app.infrastructure.database.session import build_session_factory
+from app.application.ports.catalog_cache import CatalogCache
 
 
 def _error_response(status_code: int, detail: str, headers: dict[str, str] | None = None) -> JSONResponse:
@@ -56,12 +58,30 @@ def _register_exception_handlers(app: FastAPI) -> None:
 def create_app(
     settings: Settings | None = None,
     session_factory: Callable[[], Session] | None = None,
+    catalog_cache: CatalogCache | None = None,
 ) -> FastAPI:
     configured_settings = settings or get_settings()
+    cache = catalog_cache
+    if cache is None and configured_settings.catalog_cache_enabled:
+        from redis import Redis
+        from redis.backoff import NoBackoff
+        from redis.retry import Retry
+        from app.infrastructure.cache.catalog_cache import RedisCatalogCache
+        cache = RedisCatalogCache(Redis.from_url(
+            configured_settings.redis_url, socket_timeout=configured_settings.redis_timeout,
+            socket_connect_timeout=configured_settings.redis_timeout,
+            retry=Retry(NoBackoff(), 0),
+        ), configured_settings.catalog_cache_namespace, configured_settings.catalog_cache_ttl)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        yield
+        try:
+            yield
+        finally:
+            if catalog_cache is None and cache is not None:
+                cache.close()
+            if session_factory is None:
+                app.state.session_factory.kw["bind"].dispose()
 
     app = FastAPI(
         title="Cinema Booking System API",
@@ -71,6 +91,13 @@ def create_app(
     )
     app.state.settings = configured_settings
     app.state.session_factory = session_factory or build_session_factory(configured_settings)
+    app.state.catalog_cache = cache
+    if configured_settings.metrics_enabled:
+        from app.infrastructure.observability import MetricsMiddleware, instrument_engine
+        engine = getattr(app.state.session_factory, "kw", {}).get("bind")
+        if engine is not None:
+            instrument_engine(engine)
+        app.add_middleware(MetricsMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=configured_settings.cors_origins,
@@ -96,6 +123,22 @@ def create_app(
     @app.get("/health", tags=["System"], summary="Health check")
     def health_check() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/ready", tags=["System"])
+    def readiness() -> JSONResponse:
+        try:
+            with app.state.session_factory() as session:
+                session.execute(text("SELECT 1"))
+            return JSONResponse({"status": "ready"})
+        except Exception:
+            return JSONResponse({"status": "not_ready"}, status_code=503)
+
+    @app.get("/metrics", include_in_schema=False)
+    def metrics() -> Response:
+        if not configured_settings.metrics_enabled:
+            raise HTTPException(404)
+        from app.infrastructure.observability import metrics_bytes
+        return Response(metrics_bytes(), media_type="text/plain; version=0.0.4; charset=utf-8")
 
     return app
 

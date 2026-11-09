@@ -61,7 +61,8 @@ echo "--> Biên dịch Frontend (build dist)..."
 docker run --rm \
     -v "$PROJECT_ROOT/frontend:/app" \
     -w /app \
-    node:20-alpine npm run build >/dev/null
+    -e VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8000}" \
+    node:20-alpine sh -c 'npm ci && npm run build'
 
 if [ "$(docker ps -aq -f name=^cinema-frontend$)" ]; then
     echo "--> Khởi động lại cinema-frontend để cập nhật bản build mới..."

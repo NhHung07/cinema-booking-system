@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_USER: phase2
+      POSTGRES_PASSWORD: phase2-local-test
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:35439:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phase2 -d postgres"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis:
+    image: redis:7-bookworm
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "127.0.0.1:36389:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
