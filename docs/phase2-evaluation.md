@@ -180,7 +180,7 @@ Chạy tại thư mục gốc repository:
 
 ```bash
 uv venv --python 3.12 .venv
-uv pip sync --python .venv/bin/python --require-hashes -r experiments/phase2/requirements.lock.txt
+uv pip sync --python .venv/bin/python --require-hashes experiments/phase2/requirements.lock.txt
 .venv/bin/python -m experiments.phase2.bundle --output /tmp/cinema-phase2-source.tar.gz
 ```
 

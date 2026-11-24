@@ -72,7 +72,7 @@ def main():
     if not venv.exists():
         run([uv, "venv", "--python", "3.12", str(venv)])
     run([uv, "pip", "sync", "--python", str(venv / "bin/python"), "--require-hashes",
-         "-r", str(root / "experiments/phase2/requirements.lock.txt")])
+         str(root / "experiments/phase2/requirements.lock.txt")])
     install_services()
     print(f"Prepared Python: {venv / 'bin/python'}")
 
