@@ -3,7 +3,7 @@ import hashlib
 from pathlib import Path
 import tarfile
 
-from experiments.phase2.runner import ROOT, source_files
+from experiments.phase2.source import ROOT, source_files
 
 
 def main():
