@@ -190,12 +190,16 @@ Lệnh bundle đóng gói backend, migration, kiểm thử, dependency đã khó
 
 1. Tạo Kaggle Dataset riêng và tải lên tệp `cinema-phase2-source.tar.gz` vừa đóng gói. Dataset này chứa backend sẽ được chạy.
 2. Nhập tệp `experiments/phase2/kaggle_cpu.ipynb` vào Kaggle Notebook. Đây là notebook điều phối, không phải tệp backend cần giải nén thủ công.
-3. Thêm Dataset ở bước 1 làm đầu vào của notebook. Chỉ gắn một bundle có tên `cinema-phase2-source.tar.gz`; ô đầu tiên sẽ tự tìm, kiểm tra checksum và giải nén.
+3. Thêm Dataset ở bước 1 làm đầu vào của notebook. Chỉ gắn một bộ source. Ô đầu tiên nhận cả tệp `cinema-phase2-source.tar.gz` lẫn các thư mục source đã được Kaggle tự giải nén; không cần nén lại Dataset.
+
+Ô đầu nhận diện thư mục gốc qua `app/main.py`, `alembic.ini`, `requirements.txt`, `experiments/phase2/bootstrap.py` và lock dependency. Source được chép hoặc giải nén sang `/kaggle/working`, vì đầu vào trong `/kaggle/input` chỉ dùng để đọc. Đường dẫn có thêm thư mục chủ Dataset, phiên bản hoặc thư mục bao ngoài vẫn được tìm tự động.
+
+Output hiển thị `Input mode`, `Input source`, `Source checksum` và `Repository`. Với tệp nén, checksum là SHA-256 của tệp; với source đã giải nén, checksum được tính từ đường dẫn và nội dung các tệp, nên không dùng để đối chiếu trực tiếp với SHA-256 của tệp nén. Nếu không tìm thấy source, kiểm tra **Add Input**; nếu có nhiều bộ source, gỡ các Dataset dư.
 
 ## Chạy trên Kaggle
 
 1. Chọn **Accelerator: None**, bật Internet cho bước chuẩn bị dependency.
-2. Chạy ô giải nén Dataset; checksum bundle được hiển thị để đối chiếu.
+2. Chạy ô chuẩn bị source; kiểm tra `Input source` đúng Dataset và `Repository` nằm trong `/kaggle/working`.
 3. Chạy bootstrap. Công cụ chuẩn bị Python 3.12, PostgreSQL 16 và Redis 7. Các gói Python được cài theo lock có checksum.
 4. Chạy kiểm chứng chức năng. Công cụ tạo PostgreSQL/Redis cục bộ riêng và chạy toàn bộ kiểm thử, gồm migration và tranh chấp hai worker.
 5. Chạy smoke với bộ dữ liệu chuẩn: 16 lượt, 10 người dùng, warm-up 5 giây, đo 10 giây.
