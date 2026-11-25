@@ -1,4 +1,9 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import event
+
+from app.core.config import Settings
+from app.core.security import create_access_token
+from app.main import create_app
 
 
 def _register_and_login(client: TestClient, email: str) -> dict[str, str]:
@@ -66,3 +71,27 @@ def test_cors_allows_the_vite_development_origin(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_split_booking_auth_returns_connection_before_booking(session_factory, catalog):
+    settings = Settings(jwt_secret_key="test-secret-key-with-at-least-thirty-two-bytes",
+                        booking_split_auth=True)
+    pool = session_factory.kw["bind"].pool
+    calls = []
+    event.listen(pool, "checkout", lambda *args: calls.append("checkout"))
+    event.listen(pool, "checkin", lambda *args: calls.append("checkin"))
+    with TestClient(create_app(settings=settings, session_factory=session_factory)) as client:
+        headers = _register_and_login(client, "split@example.com")
+        payload = {"showtime_id": catalog["showtime_id"], "seat_ids": [catalog["seat_1"]]}
+        calls.clear()
+        assert client.post("/bookings", json=payload).status_code == 401
+        assert calls == []
+        absent = {"Authorization": "Bearer " + create_access_token(999, settings)}
+        assert client.post("/bookings", json=payload, headers=absent).status_code == 401
+        assert calls == ["checkout", "checkin"]
+        calls.clear()
+        created = client.post("/bookings", json=payload, headers=headers)
+        assert created.status_code == 201
+        assert calls == ["checkout", "checkin", "checkout", "checkin"]
+        assert client.post("/bookings", json=payload, headers=headers).status_code == 409
+        assert client.delete(f"/bookings/{created.json()['id']}", headers=headers).status_code == 200

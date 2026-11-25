@@ -11,6 +11,9 @@ def create_session_factory(database_url: str, settings: Settings | None = None) 
     if settings is not None and database_url.startswith("postgresql"):
         options = dict(pool_size=settings.db_pool_size, max_overflow=settings.db_max_overflow,
                        pool_timeout=settings.db_pool_timeout)
+        if settings.metrics_enabled:
+            from app.infrastructure.observability import BookingMeasuredPool
+            options["poolclass"] = BookingMeasuredPool
     engine = create_engine(database_url, pool_pre_ping=True, **options)
     if settings is not None and settings.metrics_enabled:
         from app.infrastructure.observability import instrument_engine

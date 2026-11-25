@@ -3,18 +3,21 @@ import csv
 import json
 import os
 from pathlib import Path
-import statistics
 import tempfile
 
 from experiments.phase2.environment import write_json
-from experiments.phase2.results import aggregate_runs
+from experiments.phase2.results import experiment_summary
 
 
 def flatten(row: dict) -> dict:
     result = {key: row.get(key) for key in ["variant", "scenario", "users", "repeat", "valid", "completed_rps",
-              "successful_booking_rps", "unexpected_failure_ratio", "infrastructure_error", "waves_per_second"]}
+              "successful_booking_rps", "unexpected_failure_ratio", "infrastructure_error", "waves_per_second",
+              "booking_rejection_ratio", "failure_including_rejections_ratio", "successful_booking_ratio",
+              "no_http_response", "client_timeouts", "http_500", "other_503",
+              "winning_waves_per_second", "no_winner_wave_ratio", "unexpected_waves"]}
     result.update({key: row.get("server_metrics", {}).get(key) for key in
-                   ["sql_per_request", "sql_queries", "cache_hit_ratio", "cache_errors", "pool_timeouts"]})
+                   ["sql_per_request", "sql_queries", "cache_hit_ratio", "cache_errors", "pool_timeouts",
+                    "booking_admitted", "booking_rejected"]})
     for component in ["api", "postgres", "redis", "load"]:
         data = row.get("resources", {}).get(component, {})
         for field in ["cpu_mean_percent", "rss_sampled_peak_bytes"]:
@@ -37,13 +40,21 @@ def generate_report(root: Path) -> dict:
     metadata = json.loads((root / "experiment.json").read_text())
     rows = [json.loads(path.read_text()) for path in sorted(root.glob("[0-9]*/result.json"))]
     expected = metadata["matrix"]
-    summary = aggregate_runs(rows, len(expected), expected_matrix=expected)
-    summary["complete"] = summary["complete"] and not metadata.get("cleanup_errors") and not metadata.get("failure_type")
-    primary = summary["complete"] and metadata["canonical"] and metadata["profile"] == "full" and len(expected) == 144
-    summary.update(canonical=metadata["canonical"], profile=metadata["profile"], primary_complete=primary)
+    summary = experiment_summary(metadata, rows)
+    booking_profile = metadata["profile"].startswith("booking-")
+    variants = sorted({spec["variant"] for spec in expected})
     write_json(root / "summary.json", summary)
     _csv(root / "runs.csv", [flatten(row) for row in rows])
     _csv(root / "summary.csv", [{k: v for k, v in group.items() if k != "latencies"} for group in summary["groups"]])
+    if booking_profile:
+        timing = []
+        for row in rows:
+            for stage, data in row.get("server_metrics", {}).get("booking_timing", {}).items():
+                timing.append({**{k: row[k] for k in ("variant", "scenario", "users", "repeat", "valid")},
+                               "stage": stage, "count": data["count"],
+                               "mean_ms": data["sum_seconds"] * 1000 / data["count"],
+                               "p95_upper_ms": data["p95_upper_ms"]})
+        _csv(root / "booking-timing.csv", timing)
 
     # Explicit writable cache avoids touching the user's home from a Kaggle worker.
     os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "cinema-phase2-matplotlib"))
@@ -56,7 +67,7 @@ def generate_report(root: Path) -> dict:
     label = "Thí nghiệm Kaggle CPU" if metadata["canonical"] else "Kiểm tra cục bộ — không dùng kết luận Pha 2"
     figure, axes = plt.subplots(2, 2, figsize=(12, 8))
     for scenario, axis in zip(["R1", "R2", "R3", "R4"], axes.flat):
-        for variant in "ABCD":
+        for variant in variants:
             groups = sorted((g for g in summary["groups"] if g["scenario"] == scenario and g["variant"] == variant), key=lambda g: g["users"])
             if groups:
                 axis.errorbar([g["users"] for g in groups], [g["completed_rps_median"] for g in groups],
@@ -76,7 +87,7 @@ def generate_report(root: Path) -> dict:
     latency, axes = plt.subplots(2, 2, figsize=(12, 8))
     target_groups = {"R1": ["read:200"], "R2": ["write:201"], "R3": ["conflict:201", "conflict:409"], "R4": ["read:200", "write:201"]}
     for scenario, axis in zip(target_groups, axes.flat):
-        for variant in "ABCD":
+        for variant in variants:
             for name in target_groups[scenario]:
                 groups = sorted((g for g in summary["groups"] if g["scenario"] == scenario and g["variant"] == variant and name in g["latencies"]), key=lambda g: g["users"])
                 if groups:
@@ -127,25 +138,59 @@ def generate_report(root: Path) -> dict:
 
     comparisons = []
     index = {(g["variant"], g["scenario"], g["users"]): g for g in summary["groups"]}
+    pairs = ([("D1", "D0"), ("D2", "D1"), ("D2", "D0"), ("D-limit", "D0")] if booking_profile
+             else [("B", "A"), ("C", "A"), ("D", "C"), ("D", "B"), ("D", "A")])
     for scenario in ["R1", "R2", "R3", "R4"]:
         for users in sorted({g["users"] for g in summary["groups"]}):
-            for after, before in [("B", "A"), ("C", "A"), ("D", "C"), ("D", "B"), ("D", "A")]:
+            for after, before in pairs:
                 left, right = index.get((after, scenario, users)), index.get((before, scenario, users))
                 if left and right and right["completed_rps_median"]:
                     comparisons.append({"scenario": scenario, "users": users, "comparison": f"{after}/{before}",
                                         "rps_change_percent": (left["completed_rps_median"] / right["completed_rps_median"] - 1) * 100,
+                                        "successful_booking_rps_after": left.get("successful_booking_rps_median"),
+                                        "successful_booking_rps_before": right.get("successful_booking_rps_median"),
                                         "after_repeats": left["repeats"], "before_repeats": right["repeats"]})
     _csv(root / "comparisons.csv", comparisons)
 
-    lines = ["# Đánh giá kiến trúc backend", "", f"Nguồn: {label}.", "",
-             "Trạng thái Pha 2: " + ("đủ ma trận đo chính." if primary else "**chưa hoàn tất thí nghiệm Kaggle chính**."), "",
+    if booking_profile:
+        status = ("Đã đủ ma trận so sánh đặt vé trên Kaggle." if summary["booking_followup_complete"]
+                  else f"Chế độ {metadata['profile']}. Chưa có ma trận so sánh đặt vé đầy đủ trên Kaggle.")
+        architecture = ("D0 là cấu hình D đối chứng. D1 tách session xác thực. D2 kết hợp D1 và giới hạn 4 yêu cầu mỗi worker. "
+                        "D-limit chỉ bật giới hạn. Mọi biến thể dùng 2 worker, Redis và tối đa 8 kết nối PostgreSQL.")
+    else:
+        status = "Trạng thái Pha 2: " + ("đủ ma trận đo chính." if summary["primary_complete"] else "**chưa hoàn tất thí nghiệm Kaggle chính**.")
+        architecture = "A: một worker, không cache. B: một worker và Redis cache-aside. C: hai worker, không cache. D: hai worker và Redis. Tổng ngân sách pool API là tám kết nối trong mọi biến thể."
+    lines = ["# Đánh giá kiến trúc backend", "", f"Nguồn: {label}.", "", status, "",
              f"Lượt quan sát: {len(rows)}/{len(expected)}; hợp lệ: {summary['valid_runs']}; không hợp lệ: {summary['invalid_runs']}.", "",
              "## Kiến trúc và phương pháp", "",
-             "A: một worker, không cache. B: một worker và Redis cache-aside. C: hai worker, không cache. D: hai worker và Redis. Tổng ngân sách pool API là tám kết nối trong mọi biến thể.", "",
+             architecture, "",
              "Phép đo dùng cùng snapshot dữ liệu và cấu hình môi trường. R1 đọc danh mục; R2 đặt ghế khác nhau; R3 tranh cùng ghế theo vòng; R4 kết hợp đọc và ghi. Mỗi kết quả được giữ cùng spec, metrics và log gốc.", "",
              "## Kết quả hợp lệ", "", "| Biến thể | Kịch bản | Người dùng | Số lần | RPS median | Min–max |", "|---|---|---:|---:|---:|---|" ]
     for group in summary["groups"]:
         lines.append(f"| {group['variant']} | {group['scenario']} | {group['users']} | {group['repeats']} | {group['completed_rps_median']:.2f} | {group['completed_rps_min']:.2f}–{group['completed_rps_max']:.2f} |")
+    if booking_profile:
+        protocol = metadata.get("load_protocol", {})
+        if (period := protocol.get("user_period_seconds")) and period > 0:
+            lines.extend(["", f"Bộ tạo tải dùng chu kỳ tối thiểu {period:g} giây mỗi người dùng ảo cho mọi biến thể."])
+
+        def number(value, scale=1):
+            return f"{value * scale:.2f}" if value is not None else "—"
+
+        lines.extend(["", "| Biến thể | Kịch bản | Người dùng | Vé/giây | p95 đọc (ms) | p95 đặt thành công (ms) | Lỗi ngoài dự kiến (%) | Từ chối (%) | Lỗi gồm từ chối (%) |",
+                      "|---|---|---:|---:|---:|---:|---:|---:|---:|"])
+        for group in summary["groups"]:
+            latencies = group["latencies"]
+            booking_status = "conflict:201" if group["scenario"] == "R3" else "write:201"
+            values = (number(group.get("successful_booking_rps_median")),
+                      number(latencies.get("read:200", {}).get("p95_median_ms")),
+                      number(latencies.get(booking_status, {}).get("p95_median_ms")),
+                      number(group.get("unexpected_failure_ratio_median"), 100),
+                      number(group.get("booking_rejection_ratio_median"), 100),
+                      number(group.get("failure_including_rejections_ratio_median"), 100))
+            lines.append(f"| {group['variant']} | {group['scenario']} | {group['users']} | " + " | ".join(values) + " |")
+        lines.extend(["", "Xem summary.csv để đối chiếu min–max, số vòng có người thắng và tỷ lệ vòng không có 201.",
+                      "503 kiểm soát tải được đếm riêng theo mã booking_overloaded. RPS tổng gồm cả phản hồi này.",
+                      "booking-timing.csv ghi trung bình và giới hạn trên của bucket p95 theo từng lượt. Ô trống ở p95 có thể do mẫu rơi vào bucket vô hạn."])
     lines.extend(["", "## Lượt không hợp lệ", ""])
     for row in rows:
         if not row.get("valid"):
@@ -170,7 +215,7 @@ def main():
     parser.add_argument("output_root", type=Path)
     args = parser.parse_args()
     summary = generate_report(args.output_root)
-    print(json.dumps({key: summary[key] for key in ["valid_runs", "invalid_runs", "primary_complete"]}))
+    print(json.dumps({key: summary[key] for key in ["valid_runs", "invalid_runs", "primary_complete", "booking_followup_complete"]}))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 import uuid
 
@@ -93,3 +93,34 @@ def test_redis_adapter_real_ttl_corruption_and_namespace_isolation():
         if keys:
             client.delete(*keys)
         client.close()
+
+
+def test_two_workers_limit_booking_while_postgres_is_waiting(database, tmp_path):
+    _, _, url, engine, manifest = database
+    from app.core.config import Settings
+    from app.core.security import create_access_token
+    from experiments.phase2.collect import metric_delta
+    from experiments.phase2.dataset import allocation_pair
+
+    settings = Settings(jwt_secret_key=uuid.uuid4().hex * 2)
+    showtime, seat = allocation_pair(manifest["available"][0], DatasetSpec(**manifest["spec"]))
+    headers = {"Authorization": "Bearer " + create_access_token(1, settings)}
+    with api_server(url, "D2", tmp_path, settings.jwt_secret_key, namespace="worker_limit",
+                    redis_url=os.environ.get("PHASE2_REDIS_URL")) as (host, _):
+        before = httpx.get(host + "/metrics").text
+        with ThreadPoolExecutor(max_workers=24) as pool, engine.begin() as connection:
+            connection.execute(text("LOCK TABLE showtimes IN ACCESS EXCLUSIVE MODE"))
+            futures = [pool.submit(httpx.post, host + "/bookings", headers=headers,
+                                   json={"showtime_id": showtime, "seat_ids": [seat]}, timeout=10)
+                       for _ in range(24)]
+            first = next(as_completed(futures, timeout=8)).result()
+            assert first.status_code == 503 and first.json()["code"] == "booking_overloaded"
+            # While the DB transaction blocks admitted requests, the hottest worker is at its cap.
+            assert "cinema_booking_in_flight 4.0" in httpx.get(host + "/metrics", timeout=2).text
+        responses = [future.result() for future in futures]
+        assert sum(r.status_code == 201 for r in responses) == 1
+        assert {r.status_code for r in responses} <= {201, 409, 503}
+        metrics = metric_delta(before, httpx.get(host + "/metrics").text)
+        assert metrics["booking_rejected"] == sum(r.status_code == 503 for r in responses)
+        assert len(metrics["booking_admission_by_worker"]) == 2
+        assert verify_bookings(engine, manifest["spec"]["bookings"])["valid"]

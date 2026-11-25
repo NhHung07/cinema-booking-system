@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.booking_admission import BookingAdmissionMiddleware
 from app.api.routes import auth_router, bookings_router, movies_router, showtimes_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
@@ -84,6 +85,10 @@ def create_app(
     app.state.settings = configured_settings
     app.state.session_factory = session_factory or build_session_factory(configured_settings)
     app.state.catalog_cache = cache
+    if configured_settings.booking_max_in_flight_per_worker:
+        app.add_middleware(BookingAdmissionMiddleware,
+                           limit=configured_settings.booking_max_in_flight_per_worker,
+                           metrics=configured_settings.metrics_enabled)
     if configured_settings.metrics_enabled:
         from app.infrastructure.observability import MetricsMiddleware, instrument_engine
         engine = getattr(app.state.session_factory, "kw", {}).get("bind")

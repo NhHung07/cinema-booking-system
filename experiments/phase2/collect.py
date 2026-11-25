@@ -1,5 +1,6 @@
 import csv
 import json
+import math
 from pathlib import Path
 import threading
 import time
@@ -24,12 +25,36 @@ def metric_delta(before: str, after: str) -> dict:
     misses = total("cinema_cache_operations_total", outcome="miss")
     errors = total("cinema_cache_operations_total", outcome="error")
     write_errors = total("cinema_cache_operations_total", outcome="write_error")
+    booking_timing = {}
+    for metric, tags in last:
+        if metric != "cinema_booking_stage_seconds_count":
+            continue
+        labels = dict(tags)
+        count = total(metric, **labels)
+        if not count:
+            continue
+        bounds = sorted((dict(bucket_tags)["le"] for name, bucket_tags in last
+                         if name == "cinema_booking_stage_seconds_bucket"
+                         and all(dict(bucket_tags).get(k) == v for k, v in labels.items())), key=float)
+        buckets = {bound: total("cinema_booking_stage_seconds_bucket", **labels, le=bound) for bound in bounds}
+        upper = next((float(bound) for bound in bounds if buckets[bound] >= math.ceil(.95 * count)), math.inf)
+        booking_timing[f"{labels['stage']}:{labels['outcome']}"] = {
+            "count": count, "sum_seconds": total("cinema_booking_stage_seconds_sum", **labels),
+            "p95_upper_ms": None if math.isinf(upper) else upper * 1000, "buckets": buckets,
+        }
     return {"sql_queries": queries, "observed_http_requests": requests,
             "sql_per_request": queries / requests if requests else None,
             "cache_hits": hits, "cache_misses": misses, "cache_errors": errors + write_errors,
             "cache_write_errors": write_errors,
             "cache_hit_ratio": hits / (hits + misses + errors) if hits + misses + errors else None,
             "pool_timeouts": total("cinema_db_pool_timeouts_total"),
+            "booking_timing": booking_timing,
+            "booking_admitted": total("cinema_booking_admission_total", outcome="accepted"),
+            "booking_rejected": total("cinema_booking_admission_total", outcome="rejected"),
+            "booking_admission_by_worker": {
+                dict(tags)["pid"]: {outcome: total(name, pid=dict(tags)["pid"], outcome=outcome)
+                                    for outcome in ("accepted", "rejected")}
+                for name, tags in last if name == "cinema_booking_admission_total"},
             "worker_pids": sorted({dict(tags)["pid"] for (name, tags), value in last.items()
                                    if name == "cinema_worker_requests_total" and value > 0})}
 

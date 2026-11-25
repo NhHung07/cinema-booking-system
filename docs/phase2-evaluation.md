@@ -228,6 +228,25 @@ python -m experiments.phase2.report /kaggle/working/phase2-results-full
 
 `--dry-run` chỉ xuất ma trận, không khởi động dịch vụ. Thư mục kết quả phải chưa tồn tại và nằm ngoài repository. Không ghi đè hoặc tự xóa kết quả cũ.
 
+### Đánh giá kiến trúc luồng đặt vé sau Pha 2
+
+Dùng [notebook đặt vé](../experiments/phase2/kaggle_booking_followup.ipynb) và bundle được tạo lại từ nhánh chứa các thay đổi. Gắn Dataset riêng, chọn CPU, bật Internet để cài dependency, rồi chạy **Kiểm chứng chức năng**, **Kiểm tra nhanh**, **Đo chính** và **Tổng hợp và tải kết quả**. Ô chẩn đoán có thể chạy riêng để xem thời gian giữ kết nối của D0 tại 50 và 100 người dùng.
+
+| Biến thể | Xác thực khi đặt vé | Giới hạn yêu cầu đặt vé đang xử lý |
+|---|---|---|
+| D0 | Dùng chung session với giao dịch đặt vé | Tắt |
+| D1 | Session xác thực đóng trước khi bắt đầu giao dịch đặt vé | Tắt |
+| D2 | Như D1 | 4 mỗi worker |
+| D-limit | Như D0 | 4 mỗi worker |
+
+Các biến thể đều dùng hai worker, Redis cho danh mục và tổng pool tối đa tám kết nối PostgreSQL. Thử nghiệm mặc định đo D0/D1/D2. Đặt `compare_split_auth = False` trước khi chạy smoke để so sánh D0 và D-limit. Các cờ ứng dụng `BOOKING_SPLIT_AUTH` và `BOOKING_MAX_IN_FLIGHT_PER_WORKER` mặc định lần lượt là `false` và `0`. Khi vượt giới hạn, API trả `503` với mã `booking_overloaded` và header `Retry-After: 1`. Giao dịch giữ ràng buộc duy nhất của PostgreSQL để chống bán trùng ghế.
+
+Profile `booking-followup` gồm R2, R3 và R4 với 10/50/100 người dùng, ba lần lặp, tổng cộng 81 lượt hoặc 54 lượt. Dùng một phiên Kaggle CPU để chạy cả mốc đối chứng và biến thể. Tải `booking-followup-results.tar.gz` và kiểm tra `booking_followup_complete=true`. Bộ kết quả 144 lượt của Pha 2 có trạng thái `primary_complete` riêng.
+
+Bộ tạo tải vòng đặt vé áp dụng timeout kết nối và đọc phản hồi 5 giây cùng chu kỳ ít nhất 100 ms cho mỗi người dùng ảo ở mọi biến thể. Chu kỳ này giới hạn nhịp gửi tối đa khoảng 10 yêu cầu/giây mỗi người khi phản hồi nhanh. Ở lượt chẩn đoán không giới hạn nhịp, phản hồi 503 sớm từng làm Locust bão hòa, nên runner vẫn kiểm tra CPU của bộ tạo tải và loại lượt bão hòa. Profile Pha 2 dùng nhịp gửi và timeout mặc định trước đây. So sánh hiệu năng trước/sau dùng D0 trong cùng ma trận đặt vé.
+
+So sánh **vé thành công/giây**, p95 đọc và ghi, timeout và tỷ lệ từ chối. `completed_rps` bao gồm cả phản hồi 409 và 503. Các tỷ lệ lỗi và từ chối dùng cùng mẫu số là số yêu cầu bắt đầu trong cửa sổ đo. `booking-timing.csv` có thời gian lấy kết nối (gồm mở kết nối hoặc pre-ping nếu có), giữ kết nối, truy vấn xác thực, khoảng từ khi xác thực xong đến khi vào handler và thời gian xử lý đặt vé. p95 của các giai đoạn là giới hạn trên của bucket histogram. `result.json` giữ chênh lệch bucket và phân phối quyết định nhận tải theo PID.
+
 ### Kiểm tra triển khai trên máy phát triển
 
 Khởi chạy các dịch vụ riêng của bộ kiểm thử:

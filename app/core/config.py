@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     db_pool_size: int = Field(default=5, ge=1)
     db_max_overflow: int = Field(default=10, ge=0)
     db_pool_timeout: float = Field(default=30, gt=0)
+    booking_split_auth: bool = False
+    booking_max_in_flight_per_worker: int = Field(default=0, ge=0)
     catalog_cache_enabled: bool = False
     catalog_cache_namespace: str = Field(default="default", pattern=r"^[a-zA-Z0-9_-]+$")
     catalog_cache_ttl: int = Field(default=120, ge=1)

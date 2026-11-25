@@ -20,10 +20,13 @@ from redis.exceptions import ConnectionError as RedisConnectionError, TimeoutErr
 from sqlalchemy import create_engine
 
 from experiments.phase2.collect import ResourceSampler, metric_delta
-from experiments.phase2.config import VARIANTS, RunSpec, build_matrix, variant_environment
+from experiments.phase2.config import (
+    BOOKING_CLIENT_TIMEOUT_SECONDS, BOOKING_USER_PERIOD_SECONDS, BOOKING_VARIANTS,
+    PROFILES, RunSpec, build_matrix, variant_environment, variant_runtime,
+)
 from experiments.phase2.dataset import DatasetSpec, build_manifest, database_fingerprint, seed_database, verify_bookings
 from experiments.phase2.environment import inspect_environment, preflight, write_json
-from experiments.phase2.results import aggregate_runs
+from experiments.phase2.results import experiment_summary
 from experiments.phase2.runtime import DatabaseAdmin, Processes, free_port, local_postgres, start_redis
 from experiments.phase2.source import ROOT, source_files
 
@@ -83,7 +86,8 @@ def api_server(url: str, variant: str, directory: Path, secret: str, namespace: 
         env.update(DATABASE_URL=sqlalchemy_url(url), JWT_SECRET_KEY=secret,
                    PROMETHEUS_MULTIPROC_DIR=str(metrics.resolve()))
         redis_pid = None
-        if VARIANTS[variant][1]:
+        workers, cache = variant_runtime(variant)
+        if cache:
             if redis_url is None:
                 redis_url, redis_pid = start_redis(processes, directory)
             version = check_redis(redis_url)
@@ -92,7 +96,7 @@ def api_server(url: str, variant: str, directory: Path, secret: str, namespace: 
         port = free_port()
         host = f"http://127.0.0.1:{port}"
         process = processes.start([sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1",
-                                   "--port", str(port), "--workers", str(VARIANTS[variant][0]), "--no-access-log"],
+                                   "--port", str(port), "--workers", str(workers), "--no-access-log"],
                                   directory / "api.log", env)
         wait_ready(host, process)
         yield host, {"api": process.pid, "redis": redis_pid}
@@ -210,10 +214,7 @@ def finalize_experiment(admin, output: Path, metadata: dict, rows: list[dict]) -
         except Exception as exc:
             errors.append("databases:" + type(exc).__name__)
     metadata["finished_at"] = datetime.now(timezone.utc).isoformat()
-    summary = aggregate_runs(rows, len(metadata["matrix"]), expected_matrix=metadata["matrix"])
-    summary["complete"] = summary["complete"] and not errors and not metadata.get("failure_type")
-    summary.update(canonical=metadata["canonical"], cleanup_errors=errors,
-                   primary_complete=summary["complete"] and metadata["canonical"] and metadata["profile"] == "full" and len(metadata["matrix"]) == 144)
+    summary = experiment_summary(metadata, rows)
     metadata["status"] = "complete" if summary["complete"] else "incomplete"
     write_json(output / "experiment.json", metadata)
     write_json(output / "summary.json", summary)
@@ -221,8 +222,8 @@ def finalize_experiment(admin, output: Path, metadata: dict, rows: list[dict]) -
 
 
 def execute(args) -> int:
-    if args.validation_only and args.profile != "smoke":
-        raise ValueError("Validation mode cannot produce a canonical full experiment")
+    if args.validation_only and args.profile not in {"smoke", "booking-smoke", "booking-diagnostic"}:
+        raise ValueError("Validation mode is restricted to smoke and booking diagnostics")
     if (args.small_data or args.limit_runs) and not args.validation_only:
         raise ValueError("Reduced runs/data require explicit --validation-only")
     if args.limit_runs is not None and args.limit_runs < 1:
@@ -242,13 +243,18 @@ def execute(args) -> int:
     (output / "requirements.freeze.txt").write_text("\n".join(environment["packages"]) + "\n")
     if hasattr(os, "sched_setaffinity"):
         os.sched_setaffinity(0, environment["cpu_affinity"][:4])
-    runs = build_matrix(args.profile)
+    include_split_auth = not getattr(args, "without_split_auth", False)
+    runs = build_matrix(args.profile, include_split_auth=include_split_auth)
     if args.limit_runs:
         runs = runs[:args.limit_runs]
     metadata = {"profile": args.profile, "canonical": not args.validation_only,
                 "session_id": secrets.token_hex(16), "matrix": [r.to_dict() for r in runs],
                 "dataset": "reduced-validation" if args.small_data else "standard",
                 "started_at": datetime.now(timezone.utc).isoformat()}
+    if any(spec.variant in BOOKING_VARIANTS for spec in runs):
+        metadata["load_protocol"] = {"user_period_seconds": BOOKING_USER_PERIOD_SECONDS,
+                                     "connection_timeout_seconds": BOOKING_CLIENT_TIMEOUT_SECONDS,
+                                     "network_timeout_seconds": BOOKING_CLIENT_TIMEOUT_SECONDS}
     write_json(output / "experiment.json", metadata)
     rows = []
     try:
@@ -295,10 +301,7 @@ def execute(args) -> int:
                 print(f"[{index}/{len(runs)}] {spec.variant} {spec.scenario} users={spec.users} repeat={spec.repeat}", flush=True)
                 row = run_one(admin, snapshot, manifest, fingerprint, spec, output / f"{index:03}", redis_url, postgres_pid)
                 rows.append(row)
-                summary = aggregate_runs(rows, len(runs), expected_matrix=metadata["matrix"])
-                summary["canonical"] = metadata["canonical"]
-                summary["primary_complete"] = summary["complete"] and metadata["canonical"] and args.profile == "full"
-                write_json(output / "summary.json", summary)
+                write_json(output / "summary.json", experiment_summary(metadata, rows))
                 if row.get("infrastructure_error") or row.get("cleanup_errors"):
                     break
     except KeyboardInterrupt:
@@ -318,15 +321,19 @@ def main():
 
     signal.signal(signal.SIGTERM, terminate)
     parser = argparse.ArgumentParser(description="Controlled backend architecture experiment")
-    parser.add_argument("--profile", choices=["smoke", "full"], required=True)
+    parser.add_argument("--profile", choices=PROFILES, required=True)
     parser.add_argument("--output-root", type=Path, default=Path("/kaggle/working/phase2-results"))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--validation-only", action="store_true")
     parser.add_argument("--small-data", action="store_true")
     parser.add_argument("--limit-runs", type=int)
+    parser.add_argument("--without-split-auth", action="store_true",
+                        help="Compare D0 and admission-only in the booking smoke or follow-up")
     args = parser.parse_args()
+    if args.without_split_auth and args.profile not in {"booking-smoke", "booking-followup"}:
+        parser.error("--without-split-auth is only for booking-smoke and booking-followup")
     if args.dry_run:
-        print(json.dumps([r.to_dict() for r in build_matrix(args.profile)], indent=2))
+        print(json.dumps([r.to_dict() for r in build_matrix(args.profile, include_split_auth=not args.without_split_auth)], indent=2))
         return
     raise SystemExit(execute(args))
 
