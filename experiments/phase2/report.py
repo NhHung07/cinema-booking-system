@@ -47,6 +47,8 @@ def generate_report(root: Path) -> dict:
 
     # Explicit writable cache avoids touching the user's home from a Kaggle worker.
     os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "cinema-phase2-matplotlib"))
+    # Matplotlib reads MPLBACKEND during import. Kaggle can pass its inline backend to our subprocess.
+    os.environ["MPLBACKEND"] = "Agg"
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt

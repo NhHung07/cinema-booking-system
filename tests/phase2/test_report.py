@@ -12,7 +12,8 @@ def test_duplicate_run_cannot_complete_an_expected_matrix():
     assert summary["matrix_matches"] is False
 
 
-def test_report_keeps_failed_runs_and_cannot_present_local_smoke_as_phase2_results(tmp_path):
+def test_report_keeps_failed_runs_and_cannot_present_local_smoke_as_phase2_results(tmp_path, monkeypatch):
+    monkeypatch.setenv("MPLBACKEND", "module://matplotlib_inline.backend_inline")
     experiment = {"profile": "smoke", "canonical": False, "matrix": [
         {"variant": "A", "scenario": "R1", "users": 10, "repeat": 1},
         {"variant": "B", "scenario": "R1", "users": 10, "repeat": 1}]}
